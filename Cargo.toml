@@ -1,0 +1,7 @@
+[workspace]
+members = [
+  "lore-ast",
+  "lore-bin",
+  "lore-codegen",
+  "lore-parser",
+]
