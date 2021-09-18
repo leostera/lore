@@ -1,0 +1,69 @@
+---
+source: lore-parser/src/parser.rs
+expression: snapshot
+
+---
+
+input:
+    
+            use spotify:kind:artist as Artist
+            kind Artist
+            attr Name
+            attr spotify:field:play_count
+            kind spotify:kind:Album
+            use spotify:kind:song as Song
+            kind Song
+        
+
+output:
+
+Ok(
+    Structure(
+        [
+            Alias {
+                uri: URI(
+                    "spotify:kind:artist",
+                ),
+                prefix: "Artist",
+            },
+            Kind {
+                name: Alias(
+                    "Artist",
+                ),
+            },
+            Attribute {
+                name: Alias(
+                    "Name",
+                ),
+                fields: [],
+            },
+            Attribute {
+                name: URI(
+                    URI(
+                        "spotify:field:play_count",
+                    ),
+                ),
+                fields: [],
+            },
+            Kind {
+                name: URI(
+                    URI(
+                        "spotify:kind:Album",
+                    ),
+                ),
+            },
+            Alias {
+                uri: URI(
+                    "spotify:kind:song",
+                ),
+                prefix: "Song",
+            },
+            Kind {
+                name: Alias(
+                    "Song",
+                ),
+            },
+        ],
+    ),
+)
+

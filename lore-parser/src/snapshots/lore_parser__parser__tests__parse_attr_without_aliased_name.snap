@@ -1,0 +1,24 @@
+---
+source: lore-parser/src/parser.rs
+expression: snapshot
+
+---
+
+input:
+    attr Name
+
+output:
+
+Ok(
+    Structure(
+        [
+            Attribute {
+                name: Alias(
+                    "Name",
+                ),
+                fields: [],
+            },
+        ],
+    ),
+)
+

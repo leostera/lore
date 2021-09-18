@@ -1,0 +1,26 @@
+---
+source: lore-parser/src/parser.rs
+expression: snapshot
+
+---
+
+input:
+    attr spotify:field:Name
+
+output:
+
+Ok(
+    Structure(
+        [
+            Attribute {
+                name: URI(
+                    URI(
+                        "spotify:field:Name",
+                    ),
+                ),
+                fields: [],
+            },
+        ],
+    ),
+)
+

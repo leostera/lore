@@ -1,0 +1,23 @@
+---
+source: lore-parser/src/parser.rs
+expression: snapshot
+
+---
+
+input:
+    kind Hello
+
+output:
+
+Ok(
+    Structure(
+        [
+            Kind {
+                name: Alias(
+                    "Hello",
+                ),
+            },
+        ],
+    ),
+)
+

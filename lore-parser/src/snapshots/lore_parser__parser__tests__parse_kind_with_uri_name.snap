@@ -1,0 +1,25 @@
+---
+source: lore-parser/src/parser.rs
+expression: snapshot
+
+---
+
+input:
+    kind spotify:kind:artist
+
+output:
+
+Ok(
+    Structure(
+        [
+            Kind {
+                name: URI(
+                    URI(
+                        "spotify:kind:artist",
+                    ),
+                ),
+            },
+        ],
+    ),
+)
+

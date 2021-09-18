@@ -3,7 +3,7 @@ use logos::Logos;
 #[derive(Logos, Debug, PartialEq)]
 pub enum Token {
     #[regex("@[a-zA-Z]+", |lex| lex.slice()[1..].parse())]
-    Annotation(String),
+    Directive(String),
 
     #[token("as")]
     As,
@@ -96,10 +96,10 @@ mod tests {
     }
 
     #[test]
-    fn standalone_annotation() {
+    fn standalone_directive() {
         let mut lex = Token::lexer(r#" @attr "#);
 
-        assert_eq!(lex.next(), Some(Token::Annotation("attr".to_string())));
+        assert_eq!(lex.next(), Some(Token::Directive("attr".to_string())));
     }
 
     #[test]
@@ -132,7 +132,7 @@ mod tests {
     }
 
     #[test]
-    fn kind_with_annotations() {
+    fn kind_with_directive() {
         let mut lex = Token::lexer(
             r#"kind User {
             @en "documentation"
@@ -143,12 +143,12 @@ mod tests {
         assert_eq!(lex.next(), Some(Token::Kind));
         assert_eq!(lex.next(), Some(Token::Text("User".to_string())));
         assert_eq!(lex.next(), Some(Token::OpenBrace));
-        assert_eq!(lex.next(), Some(Token::Annotation("en".to_string())));
+        assert_eq!(lex.next(), Some(Token::Directive("en".to_string())));
         assert_eq!(
             lex.next(),
             Some(Token::LiteralString("documentation".to_string()))
         );
-        assert_eq!(lex.next(), Some(Token::Annotation("es".to_string())));
+        assert_eq!(lex.next(), Some(Token::Directive("es".to_string())));
         assert_eq!(
             lex.next(),
             Some(Token::LiteralString("documentacion".to_string()))
