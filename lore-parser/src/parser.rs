@@ -205,16 +205,21 @@ output:
     test!(parse_attr_with_aliased_name, "attr Name");
 
     test!(parse_rel_incomplete_with_1_part_aliased, "rel Artist");
+
     test!(parse_rel_incomplete_with_1_part, "rel spotify:kinds/Artist");
+
     test!(parse_rel_incomplete_with_2_parts_aliased, "rel Artist has");
+
     test!(
         parse_rel_incomplete_with_2_parts,
         "rel spotify:kinds/Artist spotify:rels/has"
     );
+
     test!(
         parse_rel_complete_with_3_parts_aliased,
         "rel Artist has Name"
     );
+
     test!(
         parse_rel_complete_with_3_parts,
         "rel spotify:kinds/Artist spotify:rels/has spotify:attrs/Name"

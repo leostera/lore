@@ -1,0 +1,55 @@
+---
+source: lore-parser/src/validator.rs
+expression: snapshot
+
+---
+
+input:
+    
+        use spotify:kind:artist as Artist
+        use spotify:kind:song as Song
+        use spotify:rel:hasOne as hasOne
+        use spotify:rel:hasMany as hasMany
+
+        rel Artist hasOne Name
+        rel Artist isAuthorOf Song
+        rel Band hasMany Song
+        
+
+output:
+
+Err(
+    [
+        UnresolvedName(
+            Name {
+                alias: Some(
+                    "Name",
+                ),
+                uri: URI(
+                    "lore:uri:unresolved",
+                ),
+            },
+        ),
+        UnresolvedName(
+            Name {
+                alias: Some(
+                    "isAuthorOf",
+                ),
+                uri: URI(
+                    "lore:uri:unresolved",
+                ),
+            },
+        ),
+        UnresolvedName(
+            Name {
+                alias: Some(
+                    "Band",
+                ),
+                uri: URI(
+                    "lore:uri:unresolved",
+                ),
+            },
+        ),
+    ],
+)
+

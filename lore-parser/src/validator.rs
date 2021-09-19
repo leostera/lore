@@ -7,7 +7,7 @@ use thiserror::Error;
 pub struct Validator {}
 
 #[derive(Error, Debug, PartialEq, Eq)]
-pub enum ValidatorError {
+pub enum ValidationError {
     #[error("This name cannot be resolved, did you forget to add a `use` alias?")]
     UnresolvedName(lore_ast::Name),
 
@@ -23,7 +23,7 @@ impl Validator {
     pub fn validate(
         &self,
         parsetree: Structure,
-    ) -> Result<lore_ast::Structure, Vec<ValidatorError>> {
+    ) -> Result<lore_ast::Structure, Vec<ValidationError>> {
         let mut errors = vec![];
 
         let mut relations: Vec<lore_ast::Relation> = vec![];
@@ -67,7 +67,7 @@ impl Validator {
                     if let Some(uri) = aliases.get(alias) {
                         attribute.name.set_uri(uri);
                     } else {
-                        errors.push(ValidatorError::UnresolvedName(attribute.name.clone()));
+                        errors.push(ValidationError::UnresolvedName(attribute.name.clone()));
                     }
                 }
             }
@@ -79,7 +79,7 @@ impl Validator {
                     if let Some(uri) = aliases.get(alias) {
                         kind.name.set_uri(uri);
                     } else {
-                        errors.push(ValidatorError::UnresolvedName(kind.name.clone()));
+                        errors.push(ValidationError::UnresolvedName(kind.name.clone()));
                     }
                 }
             }
@@ -91,7 +91,7 @@ impl Validator {
                     if let Some(uri) = aliases.get(alias) {
                         relation.subject.set_uri(uri);
                     } else {
-                        errors.push(ValidatorError::UnresolvedName(relation.subject.clone()));
+                        errors.push(ValidationError::UnresolvedName(relation.subject.clone()));
                     }
                 }
             }
@@ -100,7 +100,7 @@ impl Validator {
                     if let Some(uri) = aliases.get(alias) {
                         relation.predicate.set_uri(uri);
                     } else {
-                        errors.push(ValidatorError::UnresolvedName(relation.predicate.clone()));
+                        errors.push(ValidationError::UnresolvedName(relation.predicate.clone()));
                     }
                 }
             }
@@ -109,7 +109,7 @@ impl Validator {
                     if let Some(uri) = aliases.get(alias) {
                         relation.object.set_uri(uri);
                     } else {
-                        errors.push(ValidatorError::UnresolvedName(relation.object.clone()));
+                        errors.push(ValidationError::UnresolvedName(relation.object.clone()));
                     }
                 }
             }
@@ -166,6 +166,20 @@ output:
     test!(validate_missing_alias_on_attr, "attr Role");
 
     test!(
+        validate_missing_alias_on_rel,
+        r#"
+        use spotify:kind:artist as Artist
+        use spotify:kind:song as Song
+        use spotify:rel:hasOne as hasOne
+        use spotify:rel:hasMany as hasMany
+
+        rel Artist hasOne Name
+        rel Artist isAuthorOf Song
+        rel Band hasMany Song
+        "#
+    );
+
+    test!(
         normalize_aliases_on_attr,
         r#"
         use spotify:attr:name as Name
@@ -177,6 +191,15 @@ output:
         r#"
         use spotify:kind:artist as Artist
         kind Artist
+        "#
+    );
+    test!(
+        normalize_aliases_on_rels,
+        r#"
+        use spotify:kind:artist as Artist
+        use spotify:attr:Name as Name
+        use spotify:rel:hasOne as hasOne
+        rel Artist hasOne Name
         "#
     );
 }

@@ -1,6 +1,13 @@
 use lore_ast::URI;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Pos {
+    file: String,
+    line: u32,
+    col: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Name {
     URI(URI),
     Alias(String),
