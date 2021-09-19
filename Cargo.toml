@@ -2,6 +2,7 @@
 members = [
   "lore-ast",
   "lore-bin",
+  "lore-store",
   "lore-codegen",
   "lore-parser",
 ]
