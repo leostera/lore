@@ -4,6 +4,13 @@ version = "0.1.0"
 authors = ["Leandro Ostera <leandro@abstractmachines.dev>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+lore-ast = { path = "../lore-ast" }
+lore-store = { path = "../lore-store" }
+thiserror = "1.0"
+graphql-parser = "0.3"
+
+[dev-dependencies]
+lore-parser = { path = "../lore-parser" }
+pretty_assertions = "0.7"
+insta = "1.8"
