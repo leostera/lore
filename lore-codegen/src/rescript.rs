@@ -1,28 +1,28 @@
 use crate::emitter_error::*;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum CamlValue {
+pub enum ReScriptValue {
     Module {
         name: String,
-        structure: Vec<CamlValue>,
+        structure: Vec<ReScriptValue>,
     },
     Type {
         name: String,
     },
 }
 
-impl std::fmt::Display for CamlValue {
+impl std::fmt::Display for ReScriptValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         match self {
-            CamlValue::Module { name, structure } => {
-                write!(f, "module {} = struct\n", name)?;
+            ReScriptValue::Module { name, structure } => {
+                write!(f, "module {} = {{\n", name)?;
                 for item in structure {
                     write!(f, "  {}\n", item)?;
                 }
-                write!(f, "end")
+                write!(f, "}}")
             }
 
-            CamlValue::Type { name } => {
+            ReScriptValue::Type { name } => {
                 write!(f, "type {}", name)
             }
         }
@@ -30,15 +30,15 @@ impl std::fmt::Display for CamlValue {
 }
 
 #[derive(Default)]
-pub struct OCamlEmitter {}
+pub struct ReScriptEmitter {}
 
-// impl LoreEmitter<Document> for OCamlEmitter {
-impl OCamlEmitter {
-    pub fn new() -> OCamlEmitter {
-        OCamlEmitter::default()
+// impl LoreEmitter<Document> for ReScriptEmitter {
+impl ReScriptEmitter {
+    pub fn new() -> ReScriptEmitter {
+        ReScriptEmitter::default()
     }
 
-    pub fn translate(&self, store: &lore_store::Store) -> Result<CamlValue, EmitterError> {
+    pub fn translate(&self, store: &lore_store::Store) -> Result<ReScriptValue, EmitterError> {
         let mut structure = vec![];
 
         for kind in store.kinds() {
@@ -47,16 +47,16 @@ impl OCamlEmitter {
                 first.make_ascii_uppercase();
             }
 
-            let module = CamlValue::Module {
+            let module = ReScriptValue::Module {
                 name,
-                structure: vec![CamlValue::Type {
+                structure: vec![ReScriptValue::Type {
                     name: "t".to_string(),
                 }],
             };
             structure.push(module)
         }
 
-        Ok(CamlValue::Module {
+        Ok(ReScriptValue::Module {
             name: "Ontology".to_string(),
             structure,
         })
@@ -74,7 +74,7 @@ mod tests {
             fn $name() {
                 let mut store = lore_store::Store::new();
                 let store = store.add_from_string($src).unwrap();
-                let emitter = OCamlEmitter::new();
+                let emitter = ReScriptEmitter::new();
                 let caml_value = emitter.translate(&store).unwrap();
                 let snapshot = format!(
                     r#"

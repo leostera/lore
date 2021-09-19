@@ -1,65 +1,73 @@
 use crate::emitter_error::*;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum CamlValue {
-    Module {
-        name: String,
-        structure: Vec<CamlValue>,
-    },
-    Type {
-        name: String,
-    },
+pub struct ElixirType {
+    name: String,
 }
 
-impl std::fmt::Display for CamlValue {
+impl std::fmt::Display for ElixirType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
-        match self {
-            CamlValue::Module { name, structure } => {
-                write!(f, "module {} = struct\n", name)?;
-                for item in structure {
-                    write!(f, "  {}\n", item)?;
-                }
-                write!(f, "end")
-            }
+        write!(f, "@type {}()", self.name)
+    }
+}
 
-            CamlValue::Type { name } => {
-                write!(f, "type {}", name)
-            }
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ElixirModule {
+    name: String,
+    types: Vec<ElixirType>,
+}
+
+impl std::fmt::Display for ElixirModule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "defmodule {} do\n", self.name)?;
+        for t in &self.types {
+            write!(f, "{}\n", t)?;
         }
+        write!(f, "end")
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ElixirLib {
+    modules: Vec<ElixirModule>,
+}
+
+impl std::fmt::Display for ElixirLib {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        for m in &self.modules {
+            write!(f, "{}\n", m)?;
+        }
+        Ok(())
     }
 }
 
 #[derive(Default)]
-pub struct OCamlEmitter {}
+pub struct ElixirEmitter {}
 
-// impl LoreEmitter<Document> for OCamlEmitter {
-impl OCamlEmitter {
-    pub fn new() -> OCamlEmitter {
-        OCamlEmitter::default()
+// impl LoreEmitter<Document> for ElixirEmitter {
+impl ElixirEmitter {
+    pub fn new() -> ElixirEmitter {
+        ElixirEmitter::default()
     }
 
-    pub fn translate(&self, store: &lore_store::Store) -> Result<CamlValue, EmitterError> {
-        let mut structure = vec![];
+    pub fn translate(&self, store: &lore_store::Store) -> Result<ElixirLib, EmitterError> {
+        let mut modules = vec![];
 
         for kind in store.kinds() {
-            let mut name = kind.name.to_string().replace(":", "_").replace("/", "__");
+            let mut name = kind.name.to_string().replace(":", "_").replace("/", ".");
             if let Some(first) = name.get_mut(0..1) {
                 first.make_ascii_uppercase();
             }
 
-            let module = CamlValue::Module {
+            modules.push(ElixirModule {
                 name,
-                structure: vec![CamlValue::Type {
+                types: vec![ElixirType {
                     name: "t".to_string(),
                 }],
-            };
-            structure.push(module)
+            });
         }
 
-        Ok(CamlValue::Module {
-            name: "Ontology".to_string(),
-            structure,
-        })
+        Ok(ElixirLib { modules })
     }
 }
 
@@ -74,7 +82,7 @@ mod tests {
             fn $name() {
                 let mut store = lore_store::Store::new();
                 let store = store.add_from_string($src).unwrap();
-                let emitter = OCamlEmitter::new();
+                let emitter = ElixirEmitter::new();
                 let caml_value = emitter.translate(&store).unwrap();
                 let snapshot = format!(
                     r#"

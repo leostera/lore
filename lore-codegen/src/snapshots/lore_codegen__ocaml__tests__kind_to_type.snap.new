@@ -1,0 +1,44 @@
+---
+source: lore-codegen/src/ocaml.rs
+expression: snapshot
+
+---
+
+input:
+    
+
+use spotify:ontology:2022/Artist as Artist
+use spotify:ontology:2022/Album as Album
+use spotify:ontology:2022/Track as Track
+use spotify:ontology:2022/Name as Name
+use spotify:ontology:2022/hasOne as hasOne
+use spotify:ontology:2022/isListedIn as isListedIn
+
+kind Artist
+
+kind Album
+
+kind Track
+
+attr Name
+
+rel Album hasOne Name
+
+rel Track isListedIn Album
+
+        
+
+output:
+
+module Ontology = struct
+  module Spotify_ontology_2022__Artist = struct
+  type t
+end
+  module Spotify_ontology_2022__Album = struct
+  type t
+end
+  module Spotify_ontology_2022__Track = struct
+  type t
+end
+end
+
