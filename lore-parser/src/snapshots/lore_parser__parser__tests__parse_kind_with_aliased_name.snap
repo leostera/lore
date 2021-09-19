@@ -10,14 +10,14 @@ input:
 output:
 
 Ok(
-    Structure(
-        [
+    Structure {
+        items: [
             Kind {
                 name: Alias(
                     "Hello",
                 ),
             },
         ],
-    ),
+    },
 )
 

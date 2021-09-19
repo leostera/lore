@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 logos = "0.12"
 thiserror = "1.0"
+lore-ast = { path = "../lore-ast" }
 
 [dev-dependencies]
 pretty_assertions = "0.7"

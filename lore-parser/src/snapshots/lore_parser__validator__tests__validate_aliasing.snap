@@ -1,0 +1,19 @@
+---
+source: lore-parser/src/validator.rs
+expression: snapshot
+
+---
+
+input:
+     use spotify:artist:2Hkut4rAAyrQxRdof7FVJq as Rush 
+
+output:
+
+Ok(
+    Structure {
+        kinds: [],
+        attributes: [],
+        relations: [],
+    },
+)
+

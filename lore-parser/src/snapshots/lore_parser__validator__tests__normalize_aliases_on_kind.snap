@@ -1,0 +1,33 @@
+---
+source: lore-parser/src/validator.rs
+expression: snapshot
+
+---
+
+input:
+    
+        use spotify:kind:artist as Artist
+        kind Artist
+        
+
+output:
+
+Ok(
+    Structure {
+        kinds: [
+            Kind {
+                name: Name {
+                    alias: Some(
+                        "Artist",
+                    ),
+                    uri: URI(
+                        "spotify:kind:artist",
+                    ),
+                },
+            },
+        ],
+        attributes: [],
+        relations: [],
+    },
+)
+

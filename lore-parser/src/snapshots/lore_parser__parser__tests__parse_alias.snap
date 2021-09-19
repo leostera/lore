@@ -10,8 +10,8 @@ input:
 output:
 
 Ok(
-    Structure(
-        [
+    Structure {
+        items: [
             Alias {
                 uri: URI(
                     "spotify:artist:2Hkut4rAAyrQxRdof7FVJq",
@@ -19,6 +19,6 @@ Ok(
                 prefix: "Rush",
             },
         ],
-    ),
+    },
 )
 

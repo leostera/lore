@@ -1,0 +1,26 @@
+---
+source: lore-parser/src/validator.rs
+expression: snapshot
+
+---
+
+input:
+    attr Role
+
+output:
+
+Err(
+    [
+        UnresolvedName(
+            Name {
+                alias: Some(
+                    "Role",
+                ),
+                uri: URI(
+                    "lore:uri:unresolved",
+                ),
+            },
+        ),
+    ],
+)
+

@@ -1,0 +1,26 @@
+---
+source: lore-parser/src/validator.rs
+expression: snapshot
+
+---
+
+input:
+    kind Band
+
+output:
+
+Err(
+    [
+        UnresolvedName(
+            Name {
+                alias: Some(
+                    "Band",
+                ),
+                uri: URI(
+                    "lore:uri:unresolved",
+                ),
+            },
+        ),
+    ],
+)
+

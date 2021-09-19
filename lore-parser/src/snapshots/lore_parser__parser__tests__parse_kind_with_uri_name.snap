@@ -10,8 +10,8 @@ input:
 output:
 
 Ok(
-    Structure(
-        [
+    Structure {
+        items: [
             Kind {
                 name: URI(
                     URI(
@@ -20,6 +20,6 @@ Ok(
                 ),
             },
         ],
-    ),
+    },
 )
 

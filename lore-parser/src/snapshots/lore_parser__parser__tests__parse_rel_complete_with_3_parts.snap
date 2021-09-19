@@ -1,0 +1,35 @@
+---
+source: lore-parser/src/parser.rs
+expression: snapshot
+
+---
+
+input:
+    rel spotify:kinds/Artist spotify:rels/has spotify:attrs/Name
+
+output:
+
+Ok(
+    Structure {
+        items: [
+            Relation {
+                subject: URI(
+                    URI(
+                        "spotify:kinds/Artist",
+                    ),
+                ),
+                predicate: URI(
+                    URI(
+                        "spotify:rels/has",
+                    ),
+                ),
+                object: URI(
+                    URI(
+                        "spotify:attrs/Name",
+                    ),
+                ),
+            },
+        ],
+    },
+)
+

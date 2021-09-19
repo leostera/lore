@@ -17,6 +17,9 @@ pub enum Token {
     #[token("attr")]
     Attribute,
 
+    #[token("rel")]
+    Relation,
+
     #[token("in")]
     In,
 

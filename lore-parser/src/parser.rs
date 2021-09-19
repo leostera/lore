@@ -1,6 +1,7 @@
 use crate::lexer::Token;
 use crate::parsetree::*;
 use logos::{Lexer, Logos};
+use lore_ast::URI;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq, Eq)]
@@ -27,8 +28,23 @@ pub enum ParseError {
     #[error("The `kind <name>` syntax is missing a name.")]
     KindIsMissingAName,
 
-    #[error("We expected to find a Name (an Alias or a URI).")]
+    #[error("We expected to find a Name (an Alias or a URI) but found something else instead.")]
     NameIsInvalid,
+
+    #[error("We expected to find a Name, did you forget it?")]
+    NameIsMissing,
+
+    #[error("The `rel` syntax should follow the format: rel <subject> <predicate> <object>. All 3 must be URIs or aliased names.")]
+    RelationExpectedSubjectToBeName,
+
+    #[error("The `rel` syntax should follow the format: rel <subject> <predicate> <object>. All 3 must be URIs or aliased names.")]
+    RelationExpectedPredicateToBeName,
+
+    #[error("The `rel` syntax should follow the format: rel <subject> <predicate> <object>. All 3 must be URIs or aliased names.")]
+    RelationExpectedObjectToBeName,
+
+    #[error("We expected to find an Alias, a Kind, an Attribute, or a Relation.")]
+    ExpectedTopLevelItem,
 
     #[error("Runtime error")]
     Runtime(String),
@@ -43,14 +59,15 @@ fn parse_structure(mut lex: &mut Lexer<Token>) -> Result<Structure, ParseError> 
     let mut items = vec![];
     while let Some(token) = lex.next() {
         let item = match token {
-            Token::Use => parse_alias(&mut lex)?,
-            Token::Kind => parse_kind(&mut lex)?,
-            Token::Attribute => parse_attr(&mut lex)?,
-            _ => continue,
-        };
+            Token::Use => parse_alias(&mut lex),
+            Token::Kind => parse_kind(&mut lex),
+            Token::Attribute => parse_attr(&mut lex),
+            Token::Relation => parse_rel(&mut lex),
+            _ => Err(ParseError::ExpectedTopLevelItem),
+        }?;
         items.push(item);
     }
-    Ok(Structure(items))
+    Ok(Structure::of_items(items))
 }
 
 fn parse_uri(lex: &mut Lexer<Token>) -> Result<URI, ParseError> {
@@ -64,6 +81,7 @@ fn parse_name(lex: &mut Lexer<Token>) -> Result<Name, ParseError> {
     match lex.next() {
         Some(Token::URI(uri)) => Ok(Name::URI(URI(uri))),
         Some(Token::Text(text)) => Ok(Name::Alias(text)),
+        None => Err(ParseError::NameIsMissing),
         _ => Err(ParseError::NameIsInvalid),
     }
 }
@@ -102,9 +120,30 @@ fn parse_attr(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
         _ => Err(ParseError::KindIsMissingAName),
     }?;
 
-    let fields = vec![];
+    Ok(StructureItem::Attribute { name })
+}
 
-    Ok(StructureItem::Attribute { name, fields })
+fn parse_rel(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
+    let subject = match parse_name(&mut lex) {
+        Ok(name) => Ok(name),
+        _ => Err(ParseError::RelationExpectedSubjectToBeName),
+    }?;
+
+    let predicate = match parse_name(&mut lex) {
+        Ok(name) => Ok(name),
+        _ => Err(ParseError::RelationExpectedPredicateToBeName),
+    }?;
+
+    let object = match parse_name(&mut lex) {
+        Ok(name) => Ok(name),
+        _ => Err(ParseError::RelationExpectedObjectToBeName),
+    }?;
+
+    Ok(StructureItem::Relation {
+        subject,
+        predicate,
+        object,
+    })
 }
 
 #[cfg(test)]
@@ -135,45 +174,67 @@ output:
 
     test!(
         parse_alias,
-        r#" use spotify:artist:2Hkut4rAAyrQxRdof7FVJq as Rush "#
+        " use spotify:artist:2Hkut4rAAyrQxRdof7FVJq as Rush "
     );
 
     test!(
         parse_alias_with_something_that_isnt_a_uri,
-        r#" use 2Hkut4rAAyrQxRdof7FVJq as Rush "#
+        " use 2Hkut4rAAyrQxRdof7FVJq as Rush "
     );
 
-    test!(parse_alias_with_a_missing_uri, r#" use as Rush "#);
+    test!(parse_alias_with_a_missing_uri, " use as Rush ");
 
     test!(
         parse_alias_with_uri_but_missing_keyword_as,
-        r#" use spotify:hello Rush "#
+        " use spotify:hello Rush "
     );
 
     test!(
         parse_alias_with_uri_but_missing_the_aliased_name,
-        r#" use spotify:hello as"#
+        " use spotify:hello as"
     );
 
-    test!(parse_kind_with_uri_name, r#"kind spotify:kind:artist"#);
+    test!(parse_kind_with_uri_name, "kind spotify:kind:artist");
 
-    test!(parse_kind_with_aliased_name, r#"kind Hello"#);
+    test!(parse_kind_with_aliased_name, "kind Hello");
 
-    test!(parse_kind_with_missing_name, r#"kind"#);
+    test!(parse_kind_with_missing_name, "kind");
 
-    test!(parse_attr_with_uri_name, r#"attr spotify:field:Name"#);
+    test!(parse_attr_with_uri_name, "attr spotify:field:Name");
 
-    test!(parse_attr_without_aliased_name, r#"attr Name"#);
+    test!(parse_attr_with_aliased_name, "attr Name");
+
+    test!(parse_rel_incomplete_with_1_part_aliased, "rel Artist");
+    test!(parse_rel_incomplete_with_1_part, "rel spotify:kinds/Artist");
+    test!(parse_rel_incomplete_with_2_parts_aliased, "rel Artist has");
+    test!(
+        parse_rel_incomplete_with_2_parts,
+        "rel spotify:kinds/Artist spotify:rels/has"
+    );
+    test!(
+        parse_rel_complete_with_3_parts_aliased,
+        "rel Artist has Name"
+    );
+    test!(
+        parse_rel_complete_with_3_parts,
+        "rel spotify:kinds/Artist spotify:rels/has spotify:attrs/Name"
+    );
 
     test!(
         parse_multiple_items,
         r#"
             use spotify:kind:artist as Artist
+
             kind Artist
+
             attr Name
+
             attr spotify:field:play_count
+
             kind spotify:kind:Album
+
             use spotify:kind:song as Song
+
             kind Song
         "#
     );

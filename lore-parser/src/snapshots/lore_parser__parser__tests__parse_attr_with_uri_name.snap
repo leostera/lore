@@ -10,17 +10,16 @@ input:
 output:
 
 Ok(
-    Structure(
-        [
+    Structure {
+        items: [
             Attribute {
                 name: URI(
                     URI(
                         "spotify:field:Name",
                     ),
                 ),
-                fields: [],
             },
         ],
-    ),
+    },
 )
 

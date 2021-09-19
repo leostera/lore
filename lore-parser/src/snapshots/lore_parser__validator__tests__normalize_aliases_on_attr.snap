@@ -1,0 +1,33 @@
+---
+source: lore-parser/src/validator.rs
+expression: snapshot
+
+---
+
+input:
+    
+        use spotify:attr:name as Name
+        attr Name
+        
+
+output:
+
+Ok(
+    Structure {
+        kinds: [],
+        attributes: [
+            Attribute {
+                name: Name {
+                    alias: Some(
+                        "Name",
+                    ),
+                    uri: URI(
+                        "spotify:attr:name",
+                    ),
+                },
+            },
+        ],
+        relations: [],
+    },
+)
+

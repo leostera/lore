@@ -1,0 +1,29 @@
+---
+source: lore-parser/src/parser.rs
+expression: snapshot
+
+---
+
+input:
+    rel Artist has Name
+
+output:
+
+Ok(
+    Structure {
+        items: [
+            Relation {
+                subject: Alias(
+                    "Artist",
+                ),
+                predicate: Alias(
+                    "has",
+                ),
+                object: Alias(
+                    "Name",
+                ),
+            },
+        ],
+    },
+)
+

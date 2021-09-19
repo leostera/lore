@@ -10,14 +10,14 @@ input:
 output:
 
 Ok(
-    Structure(
-        [
+    Structure {
+        items: [
             Attribute {
                 name: Alias(
                     "Name",
                 ),
             },
         ],
-    ),
+    },
 )
 

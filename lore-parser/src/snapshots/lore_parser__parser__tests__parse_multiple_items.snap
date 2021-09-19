@@ -7,19 +7,25 @@ expression: snapshot
 input:
     
             use spotify:kind:artist as Artist
+
             kind Artist
+
             attr Name
+
             attr spotify:field:play_count
+
             kind spotify:kind:Album
+
             use spotify:kind:song as Song
+
             kind Song
         
 
 output:
 
 Ok(
-    Structure(
-        [
+    Structure {
+        items: [
             Alias {
                 uri: URI(
                     "spotify:kind:artist",
@@ -35,7 +41,6 @@ Ok(
                 name: Alias(
                     "Name",
                 ),
-                fields: [],
             },
             Attribute {
                 name: URI(
@@ -43,7 +48,6 @@ Ok(
                         "spotify:field:play_count",
                     ),
                 ),
-                fields: [],
             },
             Kind {
                 name: URI(
@@ -64,6 +68,6 @@ Ok(
                 ),
             },
         ],
-    ),
+    },
 )
 
