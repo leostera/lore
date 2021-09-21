@@ -7,12 +7,12 @@ expression: snapshot
 input:
     
 
-use spotify:ontology:2022/Artist as Artist
-use spotify:ontology:2022/Album as Album
-use spotify:ontology:2022/Track as Track
-use spotify:ontology:2022/Name as Name
-use spotify:ontology:2022/hasOne as hasOne
-use spotify:ontology:2022/isListedIn as isListedIn
+use spotify:ontology:v2022/Artist as Artist
+use spotify:ontology:v2022/Album as Album
+use spotify:ontology:v2022/Track as Track
+use spotify:ontology:v2022/Name as Name
+use spotify:ontology:v2022/hasOne as hasOne
+use spotify:ontology:v2022/isListedIn as isListedIn
 
 kind Artist
 
@@ -30,15 +30,20 @@ rel Track isListedIn Album
 
 output:
 
-module Ontology = {
-  module Spotify_ontology_2022__Artist = {
-  type t
-}
-  module Spotify_ontology_2022__Album = {
-  type t
-}
-  module Spotify_ontology_2022__Track = {
-  type t
-}
+SourceSet {
+    sources: [
+        Source {
+            name: "Spotify_ontology_v2022_artist.resi",
+            contents: "type t\n",
+        },
+        Source {
+            name: "Spotify_ontology_v2022_album.resi",
+            contents: "type t\n",
+        },
+        Source {
+            name: "Spotify_ontology_v2022_track.resi",
+            contents: "type t\n",
+        },
+    ],
 }
 

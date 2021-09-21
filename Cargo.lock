@@ -223,9 +223,11 @@ name = "lore-bin"
 version = "0.1.0"
 dependencies = [
  "insta",
+ "lore-codegen",
  "lore-parser",
  "lore-store",
  "structopt",
+ "thiserror",
 ]
 
 [[package]]

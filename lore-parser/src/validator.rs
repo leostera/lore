@@ -137,8 +137,9 @@ mod tests {
         ($name:ident, $src:expr) => {
             #[test]
             fn $name() {
+                let mut parser = parser::Parser::for_string("$name", $src).unwrap();
                 let validator = Validator::new();
-                let parsetree = parser::parse($src).unwrap();
+                let parsetree = parser.parse().unwrap();
                 let result = validator.validate(parsetree);
                 let snapshot = format!(
                     r#"

@@ -1,0 +1,52 @@
+---
+source: lore-store/src/store.rs
+expression: snapshot
+
+---
+
+input:
+    
+        use spotify:kind:artist as Artist
+        use spotify:attr:Name as Name
+        use spotify:rel:hasOne as hasOne
+
+        rel Artist hasOne Name
+        
+
+output:
+
+Ok(
+    Store {
+        relations: [
+            Relation {
+                subject: Name {
+                    alias: Some(
+                        "Artist",
+                    ),
+                    uri: URI(
+                        "spotify:kind:artist",
+                    ),
+                },
+                predicate: Name {
+                    alias: Some(
+                        "hasOne",
+                    ),
+                    uri: URI(
+                        "spotify:rel:hasOne",
+                    ),
+                },
+                object: Name {
+                    alias: Some(
+                        "Name",
+                    ),
+                    uri: URI(
+                        "spotify:attr:Name",
+                    ),
+                },
+            },
+        ],
+        attributes: [],
+        kinds: [],
+    },
+)
+

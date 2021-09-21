@@ -2,9 +2,10 @@ use crate::lexer::Token;
 use crate::parsetree::*;
 use logos::{Lexer, Logos};
 use lore_ast::URI;
+use std::path::PathBuf;
 use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq, Eq)]
+#[derive(Error, Debug)]
 pub enum ParseError {
     #[error("Expected a URI.")]
     ExpectedURI,
@@ -46,104 +47,127 @@ pub enum ParseError {
     #[error("We expected to find an Alias, a Kind, an Attribute, or a Relation.")]
     ExpectedTopLevelItem,
 
+    #[error(transparent)]
+    FileError(#[from] std::io::Error),
+
     #[error("Runtime error")]
     Runtime(String),
 }
 
-pub fn parse(text: &str) -> Result<Structure, ParseError> {
-    let mut lex = Token::lexer(text);
-    parse_structure(&mut lex)
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Parser {
+    file: PathBuf,
+    source: String,
 }
 
-fn parse_structure(mut lex: &mut Lexer<Token>) -> Result<Structure, ParseError> {
-    let mut items = vec![];
-    while let Some(token) = lex.next() {
-        let item = match token {
-            Token::Use => parse_alias(&mut lex),
-            Token::Kind => parse_kind(&mut lex),
-            Token::Attribute => parse_attr(&mut lex),
-            Token::Relation => parse_rel(&mut lex),
-            _ => Err(ParseError::ExpectedTopLevelItem),
+impl Parser {
+    pub fn for_file(file: PathBuf) -> Result<Parser, ParseError> {
+        let source = std::fs::read_to_string(&file).map_err(ParseError::FileError)?;
+        Ok(Parser { file, source })
+    }
+
+    pub fn for_string(filename: &str, source: &str) -> Result<Parser, ParseError> {
+        Ok(Parser {
+            file: PathBuf::from(filename),
+            source: source.to_string(),
+        })
+    }
+
+    pub fn parse(&mut self) -> Result<Structure, ParseError> {
+        let mut lexer = Token::lexer(&self.source);
+        Parser::parse_structure(&mut lexer)
+    }
+
+    fn parse_structure(mut lex: &mut Lexer<Token>) -> Result<Structure, ParseError> {
+        let mut items = vec![];
+        while let Some(token) = lex.next() {
+            let item = match token {
+                Token::Use => Parser::parse_alias(&mut lex),
+                Token::Kind => Parser::parse_kind(&mut lex),
+                Token::Attribute => Parser::parse_attr(&mut lex),
+                Token::Relation => Parser::parse_rel(&mut lex),
+                _ => Err(ParseError::ExpectedTopLevelItem),
+            }?;
+            items.push(item);
+        }
+        Ok(Structure::of_items(items))
+    }
+
+    fn parse_uri(lex: &mut Lexer<Token>) -> Result<URI, ParseError> {
+        match lex.next() {
+            Some(Token::URI(uri)) => Ok(URI(uri)),
+            _ => Err(ParseError::ExpectedURI),
+        }
+    }
+
+    fn parse_name(lex: &mut Lexer<Token>) -> Result<Name, ParseError> {
+        match lex.next() {
+            Some(Token::URI(uri)) => Ok(Name::URI(URI(uri))),
+            Some(Token::Text(text)) => Ok(Name::Alias(text)),
+            None => Err(ParseError::NameIsMissing),
+            _ => Err(ParseError::NameIsInvalid),
+        }
+    }
+
+    fn parse_alias(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
+        let uri = match Parser::parse_uri(&mut lex) {
+            Ok(uri) => Ok(uri),
+            _ => Err(ParseError::UseExpectsURI),
         }?;
-        items.push(item);
+
+        match lex.next() {
+            Some(Token::As) => Ok(()),
+            _ => Err(ParseError::UseIsMissingTheAsKeyword),
+        }?;
+
+        let prefix = match lex.next() {
+            Some(Token::Text(prefix)) => Ok(prefix),
+            _ => Err(ParseError::UseIsMissingTheAliasedName),
+        }?;
+
+        Ok(StructureItem::Alias { uri, prefix })
     }
-    Ok(Structure::of_items(items))
-}
 
-fn parse_uri(lex: &mut Lexer<Token>) -> Result<URI, ParseError> {
-    match lex.next() {
-        Some(Token::URI(uri)) => Ok(URI(uri)),
-        _ => Err(ParseError::ExpectedURI),
+    fn parse_kind(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
+        let name = match Parser::parse_name(&mut lex) {
+            Ok(name) => Ok(name),
+            _ => Err(ParseError::KindIsMissingAName),
+        }?;
+
+        Ok(StructureItem::Kind { name })
     }
-}
 
-fn parse_name(lex: &mut Lexer<Token>) -> Result<Name, ParseError> {
-    match lex.next() {
-        Some(Token::URI(uri)) => Ok(Name::URI(URI(uri))),
-        Some(Token::Text(text)) => Ok(Name::Alias(text)),
-        None => Err(ParseError::NameIsMissing),
-        _ => Err(ParseError::NameIsInvalid),
+    fn parse_attr(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
+        let name = match Parser::parse_name(&mut lex) {
+            Ok(name) => Ok(name),
+            _ => Err(ParseError::KindIsMissingAName),
+        }?;
+
+        Ok(StructureItem::Attribute { name })
     }
-}
 
-fn parse_alias(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
-    let uri = match parse_uri(&mut lex) {
-        Ok(uri) => Ok(uri),
-        _ => Err(ParseError::UseExpectsURI),
-    }?;
+    fn parse_rel(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
+        let subject = match Parser::parse_name(&mut lex) {
+            Ok(name) => Ok(name),
+            _ => Err(ParseError::RelationExpectedSubjectToBeName),
+        }?;
 
-    match lex.next() {
-        Some(Token::As) => Ok(()),
-        _ => Err(ParseError::UseIsMissingTheAsKeyword),
-    }?;
+        let predicate = match Parser::parse_name(&mut lex) {
+            Ok(name) => Ok(name),
+            _ => Err(ParseError::RelationExpectedPredicateToBeName),
+        }?;
 
-    let prefix = match lex.next() {
-        Some(Token::Text(prefix)) => Ok(prefix),
-        _ => Err(ParseError::UseIsMissingTheAliasedName),
-    }?;
+        let object = match Parser::parse_name(&mut lex) {
+            Ok(name) => Ok(name),
+            _ => Err(ParseError::RelationExpectedObjectToBeName),
+        }?;
 
-    Ok(StructureItem::Alias { uri, prefix })
-}
-
-fn parse_kind(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
-    let name = match parse_name(&mut lex) {
-        Ok(name) => Ok(name),
-        _ => Err(ParseError::KindIsMissingAName),
-    }?;
-
-    Ok(StructureItem::Kind { name })
-}
-
-fn parse_attr(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
-    let name = match parse_name(&mut lex) {
-        Ok(name) => Ok(name),
-        _ => Err(ParseError::KindIsMissingAName),
-    }?;
-
-    Ok(StructureItem::Attribute { name })
-}
-
-fn parse_rel(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
-    let subject = match parse_name(&mut lex) {
-        Ok(name) => Ok(name),
-        _ => Err(ParseError::RelationExpectedSubjectToBeName),
-    }?;
-
-    let predicate = match parse_name(&mut lex) {
-        Ok(name) => Ok(name),
-        _ => Err(ParseError::RelationExpectedPredicateToBeName),
-    }?;
-
-    let object = match parse_name(&mut lex) {
-        Ok(name) => Ok(name),
-        _ => Err(ParseError::RelationExpectedObjectToBeName),
-    }?;
-
-    Ok(StructureItem::Relation {
-        subject,
-        predicate,
-        object,
-    })
+        Ok(StructureItem::Relation {
+            subject,
+            predicate,
+            object,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -155,7 +179,8 @@ mod tests {
         ($name:ident, $src:expr) => {
             #[test]
             fn $name() {
-                let result = parse($src);
+                let mut parser = Parser::for_string("$name", $src).unwrap();
+                let parsetree = parser.parse().unwrap();
                 let snapshot = format!(
                     r#"
 input:
@@ -165,7 +190,7 @@ output:
 
 {:#?}
 "#,
-                    $src, result
+                    $src, parsetree
                 );
                 assert_snapshot!(snapshot)
             }

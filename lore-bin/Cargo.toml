@@ -5,5 +5,16 @@ authors = ["Leandro Ostera <leandro@abstractmachines.dev>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "lore"
+path = "src/main.rs"
 
 [dependencies]
+lore-parser = { path = "../lore-parser" }
+lore-store = { path = "../lore-store" }
+lore-codegen = { path = "../lore-codegen" }
+structopt = { version = "0.3", default-features = false }
+thiserror = "1.0"
+
+[dev-dependencies]
+insta = "1.8"

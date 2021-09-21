@@ -1,0 +1,28 @@
+---
+source: lore-store/src/store.rs
+expression: snapshot
+
+---
+
+input:
+    kind spotify:kind:artist
+
+output:
+
+Ok(
+    Store {
+        relations: [],
+        attributes: [],
+        kinds: [
+            Kind {
+                name: Name {
+                    alias: None,
+                    uri: URI(
+                        "spotify:kind:artist",
+                    ),
+                },
+            },
+        ],
+    },
+)
+

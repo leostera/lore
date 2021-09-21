@@ -1,0 +1,116 @@
+---
+source: lore-store/src/store.rs
+expression: snapshot
+
+---
+
+input:
+    
+            use spotify:kind:artist as Artist
+            kind Artist
+            attr spotify:field:play_count
+            kind spotify:kind:Album
+            use spotify:kind:song as Song
+            kind Song
+
+            rel Artist spotify:rel:isAuthorOf Song
+            rel Song spotify:rel:isPerformedBy Artist
+        
+
+output:
+
+Ok(
+    Store {
+        relations: [
+            Relation {
+                subject: Name {
+                    alias: Some(
+                        "Artist",
+                    ),
+                    uri: URI(
+                        "spotify:kind:artist",
+                    ),
+                },
+                predicate: Name {
+                    alias: None,
+                    uri: URI(
+                        "spotify:rel:isAuthorOf",
+                    ),
+                },
+                object: Name {
+                    alias: Some(
+                        "Song",
+                    ),
+                    uri: URI(
+                        "spotify:kind:song",
+                    ),
+                },
+            },
+            Relation {
+                subject: Name {
+                    alias: Some(
+                        "Song",
+                    ),
+                    uri: URI(
+                        "spotify:kind:song",
+                    ),
+                },
+                predicate: Name {
+                    alias: None,
+                    uri: URI(
+                        "spotify:rel:isPerformedBy",
+                    ),
+                },
+                object: Name {
+                    alias: Some(
+                        "Artist",
+                    ),
+                    uri: URI(
+                        "spotify:kind:artist",
+                    ),
+                },
+            },
+        ],
+        attributes: [
+            Attribute {
+                name: Name {
+                    alias: None,
+                    uri: URI(
+                        "spotify:field:play_count",
+                    ),
+                },
+            },
+        ],
+        kinds: [
+            Kind {
+                name: Name {
+                    alias: Some(
+                        "Artist",
+                    ),
+                    uri: URI(
+                        "spotify:kind:artist",
+                    ),
+                },
+            },
+            Kind {
+                name: Name {
+                    alias: None,
+                    uri: URI(
+                        "spotify:kind:Album",
+                    ),
+                },
+            },
+            Kind {
+                name: Name {
+                    alias: Some(
+                        "Song",
+                    ),
+                    uri: URI(
+                        "spotify:kind:song",
+                    ),
+                },
+            },
+        ],
+    },
+)
+

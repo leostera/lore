@@ -1,30 +1,75 @@
 use crate::emitter_error::*;
+use crate::source_set::*;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CamlName {
+    parts: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CamlModule {
+    name: CamlName,
+    structure: Vec<CamlValue>,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CamlValue {
-    Module {
-        name: String,
-        structure: Vec<CamlValue>,
-    },
-    Type {
-        name: String,
-    },
+    Module(CamlModule),
+    Type { name: String },
+}
+
+impl CamlName {
+    pub fn from_kind_name(name: &lore_ast::Name) -> CamlName {
+        let mut parts = vec![];
+        for part in name.to_string().to_lowercase().replace("/", ":").split(":") {
+            parts.push(part.to_string())
+        }
+
+        if let Some(first) = parts[0].get_mut(0..1) {
+            first.make_ascii_uppercase();
+        };
+
+        CamlName { parts }
+    }
+
+    pub fn to_filename(&self) -> String {
+        self.parts.join("_")
+    }
+}
+
+impl Into<Source> for CamlModule {
+    fn into(self) -> Source {
+        let filename = format!("{}.mli", self.name.to_filename());
+        let contents = format!("{}", self);
+        Source::new(filename.into(), contents)
+    }
+}
+
+impl std::fmt::Display for CamlName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "{}", self.parts[0])?;
+        for part in self.parts[1..].iter() {
+            write!(f, "_{}", part)?;
+        }
+        Ok(())
+    }
+}
+
+impl std::fmt::Display for CamlModule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        for item in &self.structure {
+            write!(f, "{}\n", item)?;
+        }
+        Ok(())
+    }
 }
 
 impl std::fmt::Display for CamlValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         match self {
-            CamlValue::Module { name, structure } => {
-                write!(f, "module {} = struct\n", name)?;
-                for item in structure {
-                    write!(f, "  {}\n", item)?;
-                }
-                write!(f, "end")
-            }
+            CamlValue::Module(m) => write!(f, "{}", m),
 
-            CamlValue::Type { name } => {
-                write!(f, "type {}", name)
-            }
+            CamlValue::Type { name } => write!(f, "type {}", name),
         }
     }
 }
@@ -38,28 +83,20 @@ impl OCamlEmitter {
         OCamlEmitter::default()
     }
 
-    pub fn translate(&self, store: &lore_store::Store) -> Result<CamlValue, EmitterError> {
-        let mut structure = vec![];
+    pub fn translate(&self, store: &lore_store::Store) -> Result<SourceSet, EmitterError> {
+        let mut sources = vec![];
 
         for kind in store.kinds() {
-            let mut name = kind.name.to_string().replace(":", "_").replace("/", "__");
-            if let Some(first) = name.get_mut(0..1) {
-                first.make_ascii_uppercase();
-            }
-
-            let module = CamlValue::Module {
-                name,
+            let module = CamlModule {
+                name: CamlName::from_kind_name(&kind.name),
                 structure: vec![CamlValue::Type {
                     name: "t".to_string(),
                 }],
             };
-            structure.push(module)
+            sources.push(module.into())
         }
 
-        Ok(CamlValue::Module {
-            name: "Ontology".to_string(),
-            structure,
-        })
+        Ok(SourceSet::from_sources(sources))
     }
 }
 
@@ -83,7 +120,7 @@ input:
 
 output:
 
-{}
+{:#?}
 "#,
                     $src, caml_value
                 );
@@ -96,12 +133,12 @@ output:
         kind_to_type,
         r#"
 
-use spotify:ontology:2022/Artist as Artist
-use spotify:ontology:2022/Album as Album
-use spotify:ontology:2022/Track as Track
-use spotify:ontology:2022/Name as Name
-use spotify:ontology:2022/hasOne as hasOne
-use spotify:ontology:2022/isListedIn as isListedIn
+use spotify:ontology:v2022/Artist as Artist
+use spotify:ontology:v2022/Album as Album
+use spotify:ontology:v2022/Track as Track
+use spotify:ontology:v2022/Name as Name
+use spotify:ontology:v2022/hasOne as hasOne
+use spotify:ontology:v2022/isListedIn as isListedIn
 
 kind Artist
 

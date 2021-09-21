@@ -1,0 +1,41 @@
+---
+source: lore-store/src/store.rs
+expression: snapshot
+
+---
+
+input:
+    attr Name
+
+output:
+
+Ok(
+    Store {
+        aliases: [],
+        attributes: [
+            Attribute {
+                name: Name {
+                    alias: Some(
+                        "Name",
+                    ),
+                    uri: URI(
+                        "lore:uri:unresolved",
+                    ),
+                },
+            },
+        ],
+        directives: [],
+        kinds: [],
+        unresolved_names: [
+            Name {
+                alias: Some(
+                    "Name",
+                ),
+                uri: URI(
+                    "lore:uri:unresolved",
+                ),
+            },
+        ],
+    },
+)
+

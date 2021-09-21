@@ -1,0 +1,18 @@
+---
+source: lore-store/src/store.rs
+expression: snapshot
+
+---
+
+input:
+     use spotify:artist:2Hkut4rAAyrQxRdof7FVJq as Rush 
+
+output:
+
+Ok(
+    Store {
+        attributes: [],
+        kinds: [],
+    },
+)
+

@@ -1,0 +1,89 @@
+---
+source: lore-store/src/store.rs
+expression: snapshot
+
+---
+
+input:
+    
+            use spotify:kind:artist as Artist
+            kind Artist
+            attr Name
+            attr spotify:field:play_count
+            kind spotify:kind:Album
+            use spotify:kind:song as Song
+            kind Song
+        
+
+output:
+
+Ok(
+    Store {
+        aliases: [
+            Alias {
+                uri: URI(
+                    "spotify:kind:artist",
+                ),
+                prefix: "Artist",
+            },
+            Alias {
+                uri: URI(
+                    "spotify:kind:song",
+                ),
+                prefix: "Song",
+            },
+        ],
+        attributes: [
+            Attribute {
+                name: Name {
+                    alias: Some(
+                        "Name",
+                    ),
+                    uri: URI(
+                        "lore:uri:unresolved",
+                    ),
+                },
+            },
+            Attribute {
+                name: Name {
+                    alias: None,
+                    uri: URI(
+                        "spotify:field:play_count",
+                    ),
+                },
+            },
+        ],
+        directives: [],
+        kinds: [
+            Kind {
+                name: Name {
+                    alias: Some(
+                        "Artist",
+                    ),
+                    uri: URI(
+                        "lore:uri:unresolved",
+                    ),
+                },
+            },
+            Kind {
+                name: Name {
+                    alias: None,
+                    uri: URI(
+                        "spotify:kind:Album",
+                    ),
+                },
+            },
+            Kind {
+                name: Name {
+                    alias: Some(
+                        "Song",
+                    ),
+                    uri: URI(
+                        "lore:uri:unresolved",
+                    ),
+                },
+            },
+        ],
+    },
+)
+
