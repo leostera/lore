@@ -39,3 +39,8 @@ clean:
 .PHONY: fmt
 fmt:
 	cargo fmt
+
+.PHONY: depgraph
+depgraph:
+	cargo depgraph | dot -Tpng > depgraph.png
+	open depgraph.png
