@@ -6,28 +6,26 @@ expression: snapshot
 
 input:
     
-        use spotify:kind:artist as Artist
-        kind Artist
+        prefix dota:ontology:v2021/Hero as @Hero
+        kind @Hero
         
 
 output:
 
-Ok(
-    Store {
-        relations: [],
-        attributes: [],
-        kinds: [
-            Kind {
-                name: Name {
-                    alias: Some(
-                        "Artist",
-                    ),
-                    uri: URI(
-                        "spotify:kind:artist",
-                    ),
-                },
-            },
-        ],
+Store {
+  kinds: {
+  Kind {
+    name: Name {
+        alias: None,
+        uri: URI(
+            "dota:ontology:v2021/Hero",
+        ),
     },
-)
+}
+  }
+  attributes: {
+  }
+  relations: {
+  }
+}
 

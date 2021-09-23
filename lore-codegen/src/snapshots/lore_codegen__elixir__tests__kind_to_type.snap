@@ -1,5 +1,5 @@
 ---
-source: lore-codegen/src/graphql.rs
+source: lore-codegen/src/elixir.rs
 expression: snapshot
 
 ---
@@ -30,16 +30,14 @@ rel Track isListedIn Album
 
 output:
 
-type spotify_ontology_2022__Artist
-
-input spotify_ontology_2022__Artist__Input
-
-type spotify_ontology_2022__Album
-
-input spotify_ontology_2022__Album__Input
-
-type spotify_ontology_2022__Track
-
-input spotify_ontology_2022__Track__Input
+defmodule Spotify_ontology_2022.Artist do
+@type t()
+end
+defmodule Spotify_ontology_2022.Track do
+@type t()
+end
+defmodule Spotify_ontology_2022.Album do
+@type t()
+end
 
 

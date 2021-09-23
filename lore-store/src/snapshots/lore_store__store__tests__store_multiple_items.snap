@@ -6,111 +6,68 @@ expression: snapshot
 
 input:
     
-            use spotify:kind:artist as Artist
-            kind Artist
-            attr spotify:field:play_count
-            kind spotify:kind:Album
-            use spotify:kind:song as Song
-            kind Song
+            prefix dota:ontology:2022/Hero as @Hero
+            prefix dota:ontology:2022/Name as @Name
+            prefix lore:rel:v1/hasOne as @hasOne
 
-            rel Artist spotify:rel:isAuthorOf Song
-            rel Song spotify:rel:isPerformedBy Artist
+            kind @Hero
+
+            attr @Name
+
+            rel @Hero @hasOne @Name
         
 
 output:
 
-Ok(
-    Store {
-        relations: [
-            Relation {
-                subject: Name {
-                    alias: Some(
-                        "Artist",
-                    ),
-                    uri: URI(
-                        "spotify:kind:artist",
-                    ),
-                },
-                predicate: Name {
-                    alias: None,
-                    uri: URI(
-                        "spotify:rel:isAuthorOf",
-                    ),
-                },
-                object: Name {
-                    alias: Some(
-                        "Song",
-                    ),
-                    uri: URI(
-                        "spotify:kind:song",
-                    ),
-                },
-            },
-            Relation {
-                subject: Name {
-                    alias: Some(
-                        "Song",
-                    ),
-                    uri: URI(
-                        "spotify:kind:song",
-                    ),
-                },
-                predicate: Name {
-                    alias: None,
-                    uri: URI(
-                        "spotify:rel:isPerformedBy",
-                    ),
-                },
-                object: Name {
-                    alias: Some(
-                        "Artist",
-                    ),
-                    uri: URI(
-                        "spotify:kind:artist",
-                    ),
-                },
-            },
-        ],
-        attributes: [
-            Attribute {
-                name: Name {
-                    alias: None,
-                    uri: URI(
-                        "spotify:field:play_count",
-                    ),
-                },
-            },
-        ],
-        kinds: [
-            Kind {
-                name: Name {
-                    alias: Some(
-                        "Artist",
-                    ),
-                    uri: URI(
-                        "spotify:kind:artist",
-                    ),
-                },
-            },
-            Kind {
-                name: Name {
-                    alias: None,
-                    uri: URI(
-                        "spotify:kind:Album",
-                    ),
-                },
-            },
-            Kind {
-                name: Name {
-                    alias: Some(
-                        "Song",
-                    ),
-                    uri: URI(
-                        "spotify:kind:song",
-                    ),
-                },
-            },
-        ],
+Store {
+  kinds: {
+  Kind {
+    name: Name {
+        alias: None,
+        uri: URI(
+            "dota:ontology:2022/Hero",
+        ),
     },
+}
+  }
+  attributes: {
+    Attribute {
+    name: Name {
+        alias: None,
+        uri: URI(
+            "dota:ontology:2022/Name",
+        ),
+    },
+}
+  }
+  relations: {
+    (
+    URI(
+        "dota:ontology:2022/Hero",
+    ),
+    [
+        Relation {
+            subject: Name {
+                alias: None,
+                uri: URI(
+                    "dota:ontology:2022/Hero",
+                ),
+            },
+            predicate: Name {
+                alias: None,
+                uri: URI(
+                    "lore:rel:v1/hasOne",
+                ),
+            },
+            object: Name {
+                alias: None,
+                uri: URI(
+                    "dota:ontology:2022/Name",
+                ),
+            },
+        },
+    ],
 )
+  }
+}
 

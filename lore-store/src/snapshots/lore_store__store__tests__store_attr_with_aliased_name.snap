@@ -6,28 +6,26 @@ expression: snapshot
 
 input:
     
-        use spotify:field:Name as Name
-        attr Name
+        prefix spotify:field:Name as @Name
+        attr @Name
         
 
 output:
 
-Ok(
-    Store {
-        relations: [],
-        attributes: [
-            Attribute {
-                name: Name {
-                    alias: Some(
-                        "Name",
-                    ),
-                    uri: URI(
-                        "spotify:field:Name",
-                    ),
-                },
-            },
-        ],
-        kinds: [],
+Store {
+  kinds: {
+  }
+  attributes: {
+    Attribute {
+    name: Name {
+        alias: None,
+        uri: URI(
+            "spotify:field:Name",
+        ),
     },
-)
+}
+  }
+  relations: {
+  }
+}
 

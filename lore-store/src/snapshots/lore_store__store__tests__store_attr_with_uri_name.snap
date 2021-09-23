@@ -9,20 +9,20 @@ input:
 
 output:
 
-Ok(
-    Store {
-        relations: [],
-        attributes: [
-            Attribute {
-                name: Name {
-                    alias: None,
-                    uri: URI(
-                        "spotify:field:Name",
-                    ),
-                },
-            },
-        ],
-        kinds: [],
+Store {
+  kinds: {
+  }
+  attributes: {
+    Attribute {
+    name: Name {
+        alias: None,
+        uri: URI(
+            "spotify:field:Name",
+        ),
     },
-)
+}
+  }
+  relations: {
+  }
+}
 

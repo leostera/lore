@@ -6,47 +6,48 @@ expression: snapshot
 
 input:
     
-        use spotify:kind:artist as Artist
-        use spotify:attr:Name as Name
-        use spotify:rel:hasOne as hasOne
+        prefix dota:ontology:v2021/Hero as @Hero
+        prefix spotify:attr:Name as @Name
+        prefix spotify:rel:hasOne as @hasOne
 
-        rel Artist hasOne Name
+        rel @Hero @hasOne @Name
         
 
 output:
 
-Ok(
-    Store {
-        relations: [
-            Relation {
-                subject: Name {
-                    alias: Some(
-                        "Artist",
-                    ),
-                    uri: URI(
-                        "spotify:kind:artist",
-                    ),
-                },
-                predicate: Name {
-                    alias: Some(
-                        "hasOne",
-                    ),
-                    uri: URI(
-                        "spotify:rel:hasOne",
-                    ),
-                },
-                object: Name {
-                    alias: Some(
-                        "Name",
-                    ),
-                    uri: URI(
-                        "spotify:attr:Name",
-                    ),
-                },
+Store {
+  kinds: {
+  }
+  attributes: {
+  }
+  relations: {
+    (
+    URI(
+        "dota:ontology:v2021/Hero",
+    ),
+    [
+        Relation {
+            subject: Name {
+                alias: None,
+                uri: URI(
+                    "dota:ontology:v2021/Hero",
+                ),
             },
-        ],
-        attributes: [],
-        kinds: [],
-    },
+            predicate: Name {
+                alias: None,
+                uri: URI(
+                    "spotify:rel:hasOne",
+                ),
+            },
+            object: Name {
+                alias: None,
+                uri: URI(
+                    "spotify:attr:Name",
+                ),
+            },
+        },
+    ],
 )
+  }
+}
 

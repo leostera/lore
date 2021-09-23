@@ -1,0 +1,36 @@
+---
+source: lore-codegen/src/ocaml/ocaml_emitter.rs
+expression: snapshot
+
+---
+
+input:
+    
+
+prefix lore:rel:v1 as @lore
+
+using dota:ontology:2022
+
+kind Hero
+
+attr Name
+
+rel Hero @lore/hasOne Name
+
+        
+
+output:
+
+SourceSet {
+    sources: [
+        Source {
+            name: "dota_ontology_2022_name.mli",
+            contents: "type t\n",
+        },
+        Source {
+            name: "dota_ontology_2022_hero.mli",
+            contents: "type t = { lore_rel_v1_hasOne: Dota_ontology_2022_name.t } \n\n",
+        },
+    ],
+}
+
