@@ -6,3 +6,9 @@ members = [
   "lore-codegen",
   "lore-parser",
 ]
+
+[profile.release]
+opt-level = 2
+lto = "fat"
+codegen-units = 1
+panic = "abort"

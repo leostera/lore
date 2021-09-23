@@ -217,6 +217,9 @@ dependencies = [
 [[package]]
 name = "lore-ast"
 version = "0.1.0"
+dependencies = [
+ "uriparse",
+]
 
 [[package]]
 name = "lore-bin"
@@ -494,6 +497,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "382810877fe448991dfc7f0dd6e3ae5d58088fd0ea5e35189655f84e6814fa56"
 dependencies = [
  "void",
+]
+
+[[package]]
+name = "uriparse"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e515b1ada404168e145ac55afba3c42f04cf972201a8552d42e2abb17c1b7221"
+dependencies = [
+ "fnv",
+ "lazy_static",
 ]
 
 [[package]]

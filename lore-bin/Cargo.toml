@@ -13,8 +13,8 @@ path = "src/main.rs"
 lore-parser = { path = "../lore-parser" }
 lore-store = { path = "../lore-store" }
 lore-codegen = { path = "../lore-codegen" }
-structopt = { version = "0.3", default-features = false }
-thiserror = "1.0"
+structopt = { version = "^0", default-features = false }
+thiserror = "^1"
 
 [dev-dependencies]
 insta = "1.8"
