@@ -1,6 +1,0 @@
-use dota:ontology:2022/Hero as Hero
-use dota:ontology:2022/Name as Name
-
-kind Hero
-
-attr Name

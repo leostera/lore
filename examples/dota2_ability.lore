@@ -1,0 +1,10 @@
+using dota:v2022
+
+kind Ability
+
+attr castingType
+attr damageType
+attr targettingType
+attr castRange
+
+rel Ability isConstrainedBy Attribute

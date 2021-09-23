@@ -1,0 +1,8 @@
+using dota:v2022
+
+# TODO(@ostera): what should a hero be?
+kind Hero
+
+attr movementSpeed
+
+rel Hero mainName Name

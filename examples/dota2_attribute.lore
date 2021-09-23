@@ -1,0 +1,12 @@
+using dota:v2022
+
+kind Attribute
+kind AttributeEffect
+kind AttributeEffectKind
+kind Affinity
+kind AffinityProportionality
+
+attr hasAffinityWith
+attr affectsAttribute
+attr hasEffectKind
+attr hasAffinityProportionality

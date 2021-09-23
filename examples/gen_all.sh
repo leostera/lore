@@ -2,7 +2,7 @@
 
 cargo build
 
-for target in rescript ocaml erlang elixir graphql; do
+for target in ocaml erlang elixir graphql; do
   ../target/debug/lore \
     codegen \
     --target $target \

@@ -1,0 +1,8 @@
+prefix lore:v1 as @lore
+
+using dota:v2022/hello/world
+
+# hello world
+attr Name
+
+rel Name @lore/rel/asString @lore/String
