@@ -14,14 +14,19 @@ pub enum ParseError {
     UseExpectsURI,
 
     #[error(
-        "The `use` syntax should follow the format: use <uri> as <name>. Did you forget the 'as'?"
+        "The `prefix` syntax should follow the format: prefix <uri> as @<name>. Did you forget the 'as'?"
     )]
-    UseIsMissingTheAsKeyword,
+    PrefixIsMissingTheAsKeyword,
 
     #[error(r#"
-        The `use` syntax should follow the format: use <uri> as <name>. Did you forget to specify a name?
+        The `prefix` syntax should follow the format: prefix <uri> as @<name>. Did you forget to specify a name?
     "#)]
-    UseIsMissingTheAliasedName,
+    PrefixIsMissingTheAliasedName,
+
+    #[error(r#"
+        The `prefix` syntax should follow the format: prefix <uri> as @<name>. Did you forget the @ before the prefix name?
+    "#)]
+    PrefixShouldBeginWithAnAt,
 
     #[error("")]
     UseExpectsTextPrefix,
@@ -82,10 +87,12 @@ impl Parser {
         let mut items = vec![];
         while let Some(token) = lex.next() {
             let item = match token {
-                Token::Use => Parser::parse_alias(&mut lex),
+                Token::Using => Parser::parse_using(&mut lex),
+                Token::Prefix => Parser::parse_prefix(&mut lex),
                 Token::Kind => Parser::parse_kind(&mut lex),
                 Token::Attribute => Parser::parse_attr(&mut lex),
                 Token::Relation => Parser::parse_rel(&mut lex),
+                Token::Comment(_) => Parser::parse_comment(&mut lex),
                 _ => Err(ParseError::ExpectedTopLevelItem),
             }?;
             items.push(item);
@@ -95,21 +102,25 @@ impl Parser {
 
     fn parse_uri(lex: &mut Lexer<Token>) -> Result<URI, ParseError> {
         match lex.next() {
-            Some(Token::URI(uri)) => Ok(URI(uri)),
+            Some(Token::URI(uri)) => Ok(URI::from_string(uri)),
             _ => Err(ParseError::ExpectedURI),
         }
     }
 
     fn parse_name(lex: &mut Lexer<Token>) -> Result<Name, ParseError> {
         match lex.next() {
-            Some(Token::URI(uri)) => Ok(Name::URI(URI(uri))),
+            Some(Token::URI(uri)) => Ok(Name::URI(URI::from_string(uri))),
             Some(Token::Text(text)) => Ok(Name::Alias(text)),
             None => Err(ParseError::NameIsMissing),
             _ => Err(ParseError::NameIsInvalid),
         }
     }
 
-    fn parse_alias(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
+    fn parse_comment(lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
+        Ok(StructureItem::Comment(lex.slice().to_string()))
+    }
+
+    fn parse_prefix(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
         let uri = match Parser::parse_uri(&mut lex) {
             Ok(uri) => Ok(uri),
             _ => Err(ParseError::UseExpectsURI),
@@ -117,15 +128,24 @@ impl Parser {
 
         match lex.next() {
             Some(Token::As) => Ok(()),
-            _ => Err(ParseError::UseIsMissingTheAsKeyword),
+            _ => Err(ParseError::PrefixIsMissingTheAsKeyword),
         }?;
 
-        let prefix = match lex.next() {
-            Some(Token::Text(prefix)) => Ok(prefix),
-            _ => Err(ParseError::UseIsMissingTheAliasedName),
+        let prefix = match Parser::parse_uri(&mut lex) {
+            Ok(uri) => Ok(uri),
+            _ => Err(ParseError::PrefixIsMissingTheAliasedName),
         }?;
 
         Ok(StructureItem::Alias { uri, prefix })
+    }
+
+    fn parse_using(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
+        let uri = match Parser::parse_uri(&mut lex) {
+            Ok(uri) => Ok(uri),
+            _ => Err(ParseError::UseExpectsURI),
+        }?;
+
+        Ok(StructureItem::Namespace { uri })
     }
 
     fn parse_kind(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
@@ -180,7 +200,7 @@ mod tests {
             #[test]
             fn $name() {
                 let mut parser = Parser::for_string("$name", $src).unwrap();
-                let parsetree = parser.parse().unwrap();
+                let parsetree = parser.parse();
                 let snapshot = format!(
                     r#"
 input:
@@ -198,25 +218,30 @@ output:
     }
 
     test!(
+        parse_comment,
+        " #prefix spotify:artist:2Hkut4rAAyrQxRdof7FVJq as Rush "
+    );
+
+    test!(
         parse_alias,
-        " use spotify:artist:2Hkut4rAAyrQxRdof7FVJq as Rush "
+        " prefix spotify:artist:2Hkut4rAAyrQxRdof7FVJq as @Rush "
     );
 
     test!(
         parse_alias_with_something_that_isnt_a_uri,
-        " use 2Hkut4rAAyrQxRdof7FVJq as Rush "
+        " prefix 2Hkut4rAAyrQxRdof7FVJq as @Rush "
     );
 
-    test!(parse_alias_with_a_missing_uri, " use as Rush ");
+    test!(parse_alias_with_a_missing_uri, " prefix as @Rush ");
 
     test!(
         parse_alias_with_uri_but_missing_keyword_as,
-        " use spotify:hello Rush "
+        " prefix spotify:hello @Rush "
     );
 
     test!(
         parse_alias_with_uri_but_missing_the_aliased_name,
-        " use spotify:hello as"
+        " prefix spotify:hello as"
     );
 
     test!(parse_kind_with_uri_name, "kind spotify:kind:artist");
@@ -253,9 +278,10 @@ output:
     test!(
         parse_multiple_items,
         r#"
-            use spotify:kind:artist as Artist
+            # this is a prefix
+            prefix spotify:kind:artist as @Artist
 
-            kind Artist
+            kind @Artist
 
             attr Name
 
@@ -263,9 +289,26 @@ output:
 
             kind spotify:kind:Album
 
-            use spotify:kind:song as Song
+            prefix spotify:kind:song as @Song
 
             kind Song
+        "#
+    );
+
+    test!(
+        parse_sample,
+        r#"
+
+prefix lore:v1 as @lore
+
+using dota:v2022/hello/world
+
+# hello world
+attr Name
+
+rel Name @lore/rel/asString @lore/String
+
+
         "#
     );
 }

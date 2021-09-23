@@ -2,14 +2,17 @@ use logos::Logos;
 
 #[derive(Logos, Debug, PartialEq)]
 pub enum Token {
-    #[regex("@[a-zA-Z]+", |lex| lex.slice()[1..].parse())]
-    Directive(String),
+    #[regex("#.*(\r\n|\n)?", |lex| lex.slice()[1..].parse())]
+    Comment(String),
 
     #[token("as")]
     As,
 
-    #[token("use")]
-    Use,
+    #[token("prefix")]
+    Prefix,
+
+    #[token("using")]
+    Using,
 
     #[token("kind")]
     Kind,
@@ -35,10 +38,13 @@ pub enum Token {
     #[token("}")]
     ClosedBrace,
 
-    #[regex("[a-z0-9][a-z0-9-]*:[a-zA-Z0-9()+,-.:=@;$_!*'%/?#]+", |lex| lex.slice().parse())]
+    #[token("/")]
+    Slash,
+
+    #[regex("([a-z0-9][a-z0-9-]*:|@)[a-zA-Z0-9()+,-.:=@;$_!*'%/?#]+", |lex| lex.slice().parse())]
     URI(String),
 
-    #[regex("[a-zA-Z]+", |lex| lex.slice().parse())]
+    #[regex("[a-zA-Z][a-zA-Z0-9-_]+", |lex| lex.slice().parse())]
     Text(String),
 
     #[regex("[0-9]+", |lex| lex.slice().parse())]
@@ -54,6 +60,18 @@ mod tests {
     use super::*;
 
     #[test]
+    fn comment() {
+        let mut lex = Token::lexer(r#"# spotify:artist:2Hkut4rAAyrQxRdof7FVJq "#);
+
+        assert_eq!(
+            lex.next(),
+            Some(Token::Comment(
+                " spotify:artist:2Hkut4rAAyrQxRdof7FVJq ".to_string()
+            ))
+        );
+    }
+
+    #[test]
     fn uri() {
         let mut lex = Token::lexer(r#" spotify:artist:2Hkut4rAAyrQxRdof7FVJq "#);
 
@@ -66,16 +84,37 @@ mod tests {
     }
 
     #[test]
-    fn use_uri() {
-        let mut lex = Token::lexer(r#" use spotify:schema/2021/artist as Artist "#);
+    fn using_namespace() {
+        let mut lex = Token::lexer(r#" using spotify:schema/2021 "#);
 
-        assert_eq!(lex.next(), Some(Token::Use));
+        assert_eq!(lex.next(), Some(Token::Using));
         assert_eq!(
             lex.next(),
-            Some(Token::URI("spotify:schema/2021/artist".to_string()))
+            Some(Token::URI("spotify:schema/2021".to_string()))
+        );
+    }
+
+    #[test]
+    fn prefix_uri() {
+        let mut lex = Token::lexer(r#" prefix spotify:schema/2021 as @spotify "#);
+
+        assert_eq!(lex.next(), Some(Token::Prefix));
+        assert_eq!(
+            lex.next(),
+            Some(Token::URI("spotify:schema/2021".to_string()))
         );
         assert_eq!(lex.next(), Some(Token::As));
-        assert_eq!(lex.next(), Some(Token::Text("Artist".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI("@spotify".to_string())));
+    }
+
+    #[test]
+    fn prefixed_uri() {
+        let mut lex = Token::lexer(r#" @spotify/schema/2021 "#);
+
+        assert_eq!(
+            lex.next(),
+            Some(Token::URI("@spotify/schema/2021".to_string()))
+        );
     }
 
     #[test]
@@ -96,13 +135,6 @@ mod tests {
     fn non_empty_string() {
         let mut lex = Token::lexer(r#" "what" "#);
         assert_eq!(lex.next(), Some(Token::LiteralString("what".to_string())));
-    }
-
-    #[test]
-    fn standalone_directive() {
-        let mut lex = Token::lexer(r#" @attr "#);
-
-        assert_eq!(lex.next(), Some(Token::Directive("attr".to_string())));
     }
 
     #[test]
@@ -132,31 +164,6 @@ mod tests {
         assert_eq!(lex.next(), Some(Token::Text("range".to_string())));
         assert_eq!(lex.next(), Some(Token::Colon));
         assert_eq!(lex.next(), Some(Token::Text("integer".to_string())));
-    }
-
-    #[test]
-    fn kind_with_directive() {
-        let mut lex = Token::lexer(
-            r#"kind User {
-            @en "documentation"
-            @es "documentacion"
-        }"#,
-        );
-
-        assert_eq!(lex.next(), Some(Token::Kind));
-        assert_eq!(lex.next(), Some(Token::Text("User".to_string())));
-        assert_eq!(lex.next(), Some(Token::OpenBrace));
-        assert_eq!(lex.next(), Some(Token::Directive("en".to_string())));
-        assert_eq!(
-            lex.next(),
-            Some(Token::LiteralString("documentation".to_string()))
-        );
-        assert_eq!(lex.next(), Some(Token::Directive("es".to_string())));
-        assert_eq!(
-            lex.next(),
-            Some(Token::LiteralString("documentacion".to_string()))
-        );
-        assert_eq!(lex.next(), Some(Token::ClosedBrace));
     }
 
     #[test]

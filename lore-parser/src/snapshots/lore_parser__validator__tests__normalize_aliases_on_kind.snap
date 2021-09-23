@@ -6,8 +6,8 @@ expression: snapshot
 
 input:
     
-        use spotify:kind:artist as Artist
-        kind Artist
+        prefix spotify:kind:artist as @Artist
+        kind @Artist
         
 
 output:
@@ -17,9 +17,7 @@ Ok(
         kinds: [
             Kind {
                 name: Name {
-                    alias: Some(
-                        "Artist",
-                    ),
+                    alias: None,
                     uri: URI(
                         "spotify:kind:artist",
                     ),

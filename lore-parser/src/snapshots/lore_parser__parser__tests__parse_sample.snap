@@ -1,0 +1,66 @@
+---
+source: lore-parser/src/parser.rs
+expression: snapshot
+
+---
+
+input:
+    
+
+prefix lore:v1 as @lore
+
+using dota:v2022/hello/world
+
+# hello world
+attr Name
+
+rel Name @lore/rel/asString @lore/String
+
+
+        
+
+output:
+
+Ok(
+    Structure {
+        items: [
+            Alias {
+                uri: URI(
+                    "lore:v1",
+                ),
+                prefix: URI(
+                    "@lore",
+                ),
+            },
+            Namespace {
+                uri: URI(
+                    "dota:v2022/hello/world",
+                ),
+            },
+            Comment(
+                "# hello world\n",
+            ),
+            Attribute {
+                name: Alias(
+                    "Name",
+                ),
+            },
+            Relation {
+                subject: Alias(
+                    "Name",
+                ),
+                predicate: URI(
+                    URI(
+                        "@lore/rel/asString",
+                    ),
+                ),
+                object: URI(
+                    URI(
+                        "@lore/String",
+                    ),
+                ),
+            },
+        ],
+    },
+)
+

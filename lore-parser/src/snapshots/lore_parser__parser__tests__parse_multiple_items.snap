@@ -6,9 +6,10 @@ expression: snapshot
 
 input:
     
-            use spotify:kind:artist as Artist
+            # this is a prefix
+            prefix spotify:kind:artist as @Artist
 
-            kind Artist
+            kind @Artist
 
             attr Name
 
@@ -16,7 +17,7 @@ input:
 
             kind spotify:kind:Album
 
-            use spotify:kind:song as Song
+            prefix spotify:kind:song as @Song
 
             kind Song
         
@@ -26,15 +27,22 @@ output:
 Ok(
     Structure {
         items: [
+            Comment(
+                "# this is a prefix\n",
+            ),
             Alias {
                 uri: URI(
                     "spotify:kind:artist",
                 ),
-                prefix: "Artist",
+                prefix: URI(
+                    "@Artist",
+                ),
             },
             Kind {
-                name: Alias(
-                    "Artist",
+                name: URI(
+                    URI(
+                        "@Artist",
+                    ),
                 ),
             },
             Attribute {
@@ -60,7 +68,9 @@ Ok(
                 uri: URI(
                     "spotify:kind:song",
                 ),
-                prefix: "Song",
+                prefix: URI(
+                    "@Song",
+                ),
             },
             Kind {
                 name: Alias(

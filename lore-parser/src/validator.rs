@@ -26,6 +26,7 @@ impl Validator {
     ) -> Result<lore_ast::Structure, Vec<ValidationError>> {
         let mut errors = vec![];
 
+        let mut local_namespace: Option<URI> = None;
         let mut relations: Vec<lore_ast::Relation> = vec![];
         let mut kinds: Vec<lore_ast::Kind> = vec![];
         let mut attributes: Vec<lore_ast::Attribute> = vec![];
@@ -33,8 +34,12 @@ impl Validator {
 
         for item in parsetree.items() {
             match item {
+                StructureItem::Namespace { uri } => {
+                    local_namespace.replace(uri.clone());
+                }
+
                 StructureItem::Alias { uri, prefix } => {
-                    aliases.insert(prefix.clone(), uri.clone());
+                    aliases.insert(prefix.clone().to_string(), uri.clone());
                 }
 
                 StructureItem::Kind { name, .. } => {
@@ -63,54 +68,59 @@ impl Validator {
 
         for attribute in &mut attributes {
             if attribute.name.is_unresolved() {
-                if let Some(alias) = &attribute.name.alias {
-                    if let Some(uri) = aliases.get(alias) {
-                        attribute.name.set_uri(uri);
-                    } else {
-                        errors.push(ValidationError::UnresolvedName(attribute.name.clone()));
-                    }
+                if let Some(uri) = Validator::normalize_prefixed_uri(
+                    &attribute.name,
+                    &aliases,
+                    &local_namespace,
+                    &mut errors,
+                ) {
+                    attribute.name.set_uri(&uri);
                 }
             }
         }
 
         for kind in &mut kinds {
             if kind.name.is_unresolved() {
-                if let Some(alias) = &kind.name.alias {
-                    if let Some(uri) = aliases.get(alias) {
-                        kind.name.set_uri(uri);
-                    } else {
-                        errors.push(ValidationError::UnresolvedName(kind.name.clone()));
-                    }
+                if let Some(uri) = Validator::normalize_prefixed_uri(
+                    &kind.name,
+                    &aliases,
+                    &local_namespace,
+                    &mut errors,
+                ) {
+                    kind.name.set_uri(&uri);
                 }
             }
         }
 
         for relation in &mut relations {
             if relation.subject.is_unresolved() {
-                if let Some(alias) = &relation.subject.alias {
-                    if let Some(uri) = aliases.get(alias) {
-                        relation.subject.set_uri(uri);
-                    } else {
-                        errors.push(ValidationError::UnresolvedName(relation.subject.clone()));
-                    }
+                if let Some(uri) = Validator::normalize_prefixed_uri(
+                    &relation.subject,
+                    &aliases,
+                    &local_namespace,
+                    &mut errors,
+                ) {
+                    relation.subject.set_uri(&uri);
                 }
             }
             if relation.predicate.is_unresolved() {
-                if let Some(alias) = &relation.predicate.alias {
-                    if let Some(uri) = aliases.get(alias) {
-                        relation.predicate.set_uri(uri);
-                    } else {
-                        errors.push(ValidationError::UnresolvedName(relation.predicate.clone()));
-                    }
+                if let Some(uri) = Validator::normalize_prefixed_uri(
+                    &relation.predicate,
+                    &aliases,
+                    &local_namespace,
+                    &mut errors,
+                ) {
+                    relation.predicate.set_uri(&uri);
                 }
             }
             if relation.object.is_unresolved() {
-                if let Some(alias) = &relation.object.alias {
-                    if let Some(uri) = aliases.get(alias) {
-                        relation.object.set_uri(uri);
-                    } else {
-                        errors.push(ValidationError::UnresolvedName(relation.object.clone()));
-                    }
+                if let Some(uri) = Validator::normalize_prefixed_uri(
+                    &relation.object,
+                    &aliases,
+                    &local_namespace,
+                    &mut errors,
+                ) {
+                    relation.object.set_uri(&uri);
                 }
             }
         }
@@ -123,6 +133,30 @@ impl Validator {
             })
         } else {
             Err(errors)
+        }
+    }
+
+    pub fn normalize_prefixed_uri(
+        name: &lore_ast::Name,
+        aliases: &HashMap<String, URI>,
+        local_namespace: &Option<URI>,
+        errors: &mut Vec<ValidationError>,
+    ) -> Option<lore_ast::URI> {
+        if let Some(alias) = &name.alias {
+            if let Some(uri) = &local_namespace {
+                Some(uri.join(alias))
+            } else {
+                errors.push(ValidationError::UnresolvedName(name.clone()));
+                None
+            }
+        } else {
+            for (prefix, expanded_uri) in aliases.into_iter() {
+                if name.uri.has_prefix(prefix) {
+                    return Some(name.uri.expand_prefix(prefix, expanded_uri));
+                }
+            }
+            errors.push(ValidationError::UnresolvedName(name.clone()));
+            None
         }
     }
 }
@@ -159,7 +193,7 @@ output:
 
     test!(
         validate_aliasing,
-        " use spotify:artist:2Hkut4rAAyrQxRdof7FVJq as Rush "
+        " prefix spotify:artist:2Hkut4rAAyrQxRdof7FVJq as @Rush "
     );
 
     test!(validate_missing_alias_on_kind, "kind Band");
@@ -169,38 +203,38 @@ output:
     test!(
         validate_missing_alias_on_rel,
         r#"
-        use spotify:kind:artist as Artist
-        use spotify:kind:song as Song
-        use spotify:rel:hasOne as hasOne
-        use spotify:rel:hasMany as hasMany
+        prefix spotify:kind:artist as @Artist
+        prefix spotify:kind:song as @Song
+        prefix spotify:rel:hasOne as @hasOne
+        prefix spotify:rel:hasMany as @hasMany
 
-        rel Artist hasOne Name
-        rel Artist isAuthorOf Song
-        rel Band hasMany Song
+        rel @Artist @hasOne @Name
+        rel @Artist @isAuthorOf @Song
+        rel @Band @hasMany @Song
         "#
     );
 
     test!(
         normalize_aliases_on_attr,
         r#"
-        use spotify:attr:name as Name
-        attr Name
+        prefix spotify:attr as @spotifyAttributes
+        attr @spotifyAttributes/name
         "#
     );
     test!(
         normalize_aliases_on_kind,
         r#"
-        use spotify:kind:artist as Artist
-        kind Artist
+        prefix spotify:kind:artist as @Artist
+        kind @Artist
         "#
     );
     test!(
         normalize_aliases_on_rels,
         r#"
-        use spotify:kind:artist as Artist
-        use spotify:attr:Name as Name
-        use spotify:rel:hasOne as hasOne
-        rel Artist hasOne Name
+        prefix spotify:kind:artist as @Artist
+        prefix spotify:attr:Name as @Name
+        prefix spotify:rel:hasOne as @hasOne
+        rel @Artist @hasOne @Name
         "#
     );
 }

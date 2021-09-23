@@ -5,7 +5,7 @@ expression: snapshot
 ---
 
 input:
-     use 2Hkut4rAAyrQxRdof7FVJq as Rush 
+     prefix 2Hkut4rAAyrQxRdof7FVJq as @Rush 
 
 output:
 

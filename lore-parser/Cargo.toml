@@ -5,9 +5,9 @@ authors = ["Leandro Ostera <leandro@abstractmachines.dev>"]
 edition = "2018"
 
 [dependencies]
-logos = "0.12"
+logos = "^0"
 lore-ast = { path = "../lore-ast" }
-thiserror = "1.0"
+thiserror = "^1"
 
 [dev-dependencies]
 pretty_assertions = "0.7"

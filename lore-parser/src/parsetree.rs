@@ -37,12 +37,15 @@ pub struct Field {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum StructureItem {
-    // Namespace { uri: URI },
+    Namespace {
+        uri: URI,
+    },
+
     Comment(String),
 
     Alias {
         uri: URI,
-        prefix: String,
+        prefix: URI,
     },
 
     // Directive { name: Name, value: Option<Literal> },

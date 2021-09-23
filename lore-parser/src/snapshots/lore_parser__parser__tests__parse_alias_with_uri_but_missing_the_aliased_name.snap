@@ -5,11 +5,11 @@ expression: snapshot
 ---
 
 input:
-     use spotify:hello as
+     prefix spotify:hello as
 
 output:
 
 Err(
-    UseIsMissingTheAliasedName,
+    PrefixIsMissingTheAliasedName,
 )
 

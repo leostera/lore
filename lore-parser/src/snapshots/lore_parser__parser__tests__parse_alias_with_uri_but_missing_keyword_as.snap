@@ -5,11 +5,11 @@ expression: snapshot
 ---
 
 input:
-     use spotify:hello Rush 
+     prefix spotify:hello @Rush 
 
 output:
 
 Err(
-    UseIsMissingTheAsKeyword,
+    PrefixIsMissingTheAsKeyword,
 )
 

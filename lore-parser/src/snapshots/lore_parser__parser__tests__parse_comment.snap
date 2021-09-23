@@ -1,0 +1,21 @@
+---
+source: lore-parser/src/parser.rs
+expression: snapshot
+
+---
+
+input:
+     #prefix spotify:artist:2Hkut4rAAyrQxRdof7FVJq as Rush 
+
+output:
+
+Ok(
+    Structure {
+        items: [
+            Comment(
+                "#prefix spotify:artist:2Hkut4rAAyrQxRdof7FVJq as Rush ",
+            ),
+        ],
+    },
+)
+

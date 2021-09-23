@@ -5,7 +5,7 @@ expression: snapshot
 ---
 
 input:
-     use spotify:artist:2Hkut4rAAyrQxRdof7FVJq as Rush 
+     prefix spotify:artist:2Hkut4rAAyrQxRdof7FVJq as @Rush 
 
 output:
 
@@ -16,7 +16,9 @@ Ok(
                 uri: URI(
                     "spotify:artist:2Hkut4rAAyrQxRdof7FVJq",
                 ),
-                prefix: "Rush",
+                prefix: URI(
+                    "@Rush",
+                ),
             },
         ],
     },

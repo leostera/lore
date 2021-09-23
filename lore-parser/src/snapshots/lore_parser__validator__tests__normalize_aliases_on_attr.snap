@@ -6,8 +6,8 @@ expression: snapshot
 
 input:
     
-        use spotify:attr:name as Name
-        attr Name
+        prefix spotify:attr as @spotifyAttributes
+        attr @spotifyAttributes/name
         
 
 output:
@@ -18,11 +18,9 @@ Ok(
         attributes: [
             Attribute {
                 name: Name {
-                    alias: Some(
-                        "Name",
-                    ),
+                    alias: None,
                     uri: URI(
-                        "spotify:attr:name",
+                        "spotify:attr/name",
                     ),
                 },
             },

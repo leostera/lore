@@ -6,14 +6,14 @@ expression: snapshot
 
 input:
     
-        use spotify:kind:artist as Artist
-        use spotify:kind:song as Song
-        use spotify:rel:hasOne as hasOne
-        use spotify:rel:hasMany as hasMany
+        prefix spotify:kind:artist as @Artist
+        prefix spotify:kind:song as @Song
+        prefix spotify:rel:hasOne as @hasOne
+        prefix spotify:rel:hasMany as @hasMany
 
-        rel Artist hasOne Name
-        rel Artist isAuthorOf Song
-        rel Band hasMany Song
+        rel @Artist @hasOne @Name
+        rel @Artist @isAuthorOf @Song
+        rel @Band @hasMany @Song
         
 
 output:
@@ -22,31 +22,25 @@ Err(
     [
         UnresolvedName(
             Name {
-                alias: Some(
-                    "Name",
-                ),
+                alias: None,
                 uri: URI(
-                    "lore:uri:unresolved",
+                    "@Name",
                 ),
             },
         ),
         UnresolvedName(
             Name {
-                alias: Some(
-                    "isAuthorOf",
-                ),
+                alias: None,
                 uri: URI(
-                    "lore:uri:unresolved",
+                    "@isAuthorOf",
                 ),
             },
         ),
         UnresolvedName(
             Name {
-                alias: Some(
-                    "Band",
-                ),
+                alias: None,
                 uri: URI(
-                    "lore:uri:unresolved",
+                    "@Band",
                 ),
             },
         ),
