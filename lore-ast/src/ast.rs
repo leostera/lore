@@ -1,13 +1,6 @@
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct URI(pub String);
+use crate::uri::*;
 
-impl URI {
-    pub fn unresolved() -> URI {
-        URI("lore:uri:unresolved".to_string())
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Name {
     pub alias: Option<String>,
     pub uri: URI,
@@ -15,7 +8,7 @@ pub struct Name {
 
 impl ToString for Name {
     fn to_string(&self) -> String {
-        self.uri.0.clone()
+        self.uri.to_string()
     }
 }
 
@@ -27,12 +20,16 @@ impl Name {
         }
     }
 
+    pub fn to_uri(&self) -> URI {
+        self.uri.clone()
+    }
+
     pub fn set_uri(&mut self, uri: &URI) {
         self.uri = uri.clone();
     }
 
     pub fn is_unresolved(&self) -> bool {
-        self.uri == URI::unresolved()
+        self.uri == URI::unresolved() || self.uri.is_prefixed()
     }
 
     pub fn unresolved_alias(alias: &str) -> Name {
@@ -43,17 +40,17 @@ impl Name {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Attribute {
     pub name: Name,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Kind {
     pub name: Name,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Relation {
     pub subject: Name,
 
