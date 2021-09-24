@@ -26,13 +26,13 @@ impl Into<lore_ast::Name> for &Name {
 pub enum Literal {
     Number(u64),
     String(String),
-    URI(URI),
+    Name(Name),
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Field {
-    name: URI,
-    value: Literal,
+    pub name: Name,
+    pub value: Literal,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -48,13 +48,14 @@ pub enum StructureItem {
         prefix: URI,
     },
 
-    // Directive { name: Name, value: Option<Literal> },
     Kind {
         name: Name,
+        fields: Vec<Field>,
     },
 
     Attribute {
         name: Name,
+        fields: Vec<Field>,
     },
 
     Relation {

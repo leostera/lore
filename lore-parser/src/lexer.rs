@@ -41,10 +41,10 @@ pub enum Token {
     #[token("/")]
     Slash,
 
-    #[regex("([a-z0-9][a-z0-9-]*:|@)[a-zA-Z0-9()+,-.:=@;$_!*'%/?#]+", |lex| lex.slice().parse())]
+    #[regex("([a-z0-9][a-z0-9-]*:|@|:)[a-zA-Z0-9()+,-.:=@;$_!*'%/?#]+", |lex| lex.slice().parse())]
     URI(String),
 
-    #[regex("[a-zA-Z][a-zA-Z0-9-_]+", |lex| lex.slice().parse())]
+    #[regex("[a-zA-Z][a-zA-Z0-9-_]*", |lex| lex.slice().parse())]
     Text(String),
 
     #[regex("[0-9]+", |lex| lex.slice().parse())]
@@ -118,6 +118,22 @@ mod tests {
     }
 
     #[test]
+    fn lowercase_kind_name() {
+        let mut lex = Token::lexer(r#" kind u "#);
+
+        assert_eq!(lex.next(), Some(Token::Kind));
+        assert_eq!(lex.next(), Some(Token::Text("u".to_string())));
+    }
+
+    #[test]
+    fn lowercase_attr_name() {
+        let mut lex = Token::lexer(r#" attr u "#);
+
+        assert_eq!(lex.next(), Some(Token::Attribute));
+        assert_eq!(lex.next(), Some(Token::Text("u".to_string())));
+    }
+
+    #[test]
     fn empty_kind() {
         let mut lex = Token::lexer(r#" kind User "#);
 
@@ -167,24 +183,58 @@ mod tests {
     }
 
     #[test]
+    fn field_block() {
+        let mut lex = Token::lexer(r#" { hello world } "#);
+
+        assert_eq!(lex.next(), Some(Token::OpenBrace));
+        assert_eq!(lex.next(), Some(Token::Text("hello".to_string())));
+        assert_eq!(lex.next(), Some(Token::Text("world".to_string())));
+        assert_eq!(lex.next(), Some(Token::ClosedBrace));
+    }
+
+    #[test]
     fn attr_with_fields() {
         let mut lex = Token::lexer(
-            r#"attr Name in User {
-            range: string
-            cardinality: 1
-        }"#,
+            r#"
+                attr Name {
+                    @label/en "Name"
+                    @label/es "Nombre"
+                    @comment/en ""
+                    @see-also    @other/entity   
+
+                    @symmetry       :symmetric
+                    @reflexivity    :reflexive
+                    @disjoint-with  :reflexive
+
+                    @domain      User
+                    @range       @lore/string
+                    @cardinality 1
+                }
+        "#,
         );
 
         assert_eq!(lex.next(), Some(Token::Attribute));
         assert_eq!(lex.next(), Some(Token::Text("Name".to_string())));
-        assert_eq!(lex.next(), Some(Token::In));
-        assert_eq!(lex.next(), Some(Token::Text("User".to_string())));
         assert_eq!(lex.next(), Some(Token::OpenBrace));
-        assert_eq!(lex.next(), Some(Token::Text("range".to_string())));
-        assert_eq!(lex.next(), Some(Token::Colon));
-        assert_eq!(lex.next(), Some(Token::Text("string".to_string())));
-        assert_eq!(lex.next(), Some(Token::Text("cardinality".to_string())));
-        assert_eq!(lex.next(), Some(Token::Colon));
+        assert_eq!(lex.next(), Some(Token::URI("@label/en".to_string())));
+        assert_eq!(lex.next(), Some(Token::LiteralString("Name".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI("@label/es".to_string())));
+        assert_eq!(lex.next(), Some(Token::LiteralString("Nombre".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI("@comment/en".to_string())));
+        assert_eq!(lex.next(), Some(Token::LiteralString("".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI("@see-also".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI("@other/entity".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI("@symmetry".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI(":symmetric".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI("@reflexivity".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI(":reflexive".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI("@disjoint-with".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI(":reflexive".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI("@domain".to_string())));
+        assert_eq!(lex.next(), Some(Token::Text("User".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI("@range".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI("@lore/string".to_string())));
+        assert_eq!(lex.next(), Some(Token::URI("@cardinality".to_string())));
         assert_eq!(lex.next(), Some(Token::Number(1)));
         assert_eq!(lex.next(), Some(Token::ClosedBrace));
     }

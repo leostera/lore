@@ -5,7 +5,7 @@ expression: snapshot
 ---
 
 input:
-    kind spotify:kind:artist
+     kind Name {} 
 
 output:
 
@@ -13,10 +13,8 @@ Ok(
     Structure {
         items: [
             Kind {
-                name: URI(
-                    URI(
-                        "spotify:kind:artist",
-                    ),
+                name: Alias(
+                    "Name",
                 ),
                 fields: [],
             },

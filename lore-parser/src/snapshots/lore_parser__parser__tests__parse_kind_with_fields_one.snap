@@ -1,0 +1,92 @@
+---
+source: lore-parser/src/parser.rs
+expression: snapshot
+
+---
+
+input:
+     kind Name {
+
+            fully:qualified:urn/for/name/meta/kind "world"
+
+            @aliased/kind/string "string"
+            @aliased/kind/number 1234
+            @aliased/kind/uri @aliased/value
+            @aliased/kind/uri f:q:uri
+
+        } 
+
+output:
+
+Ok(
+    Structure {
+        items: [
+            Kind {
+                name: Alias(
+                    "Name",
+                ),
+                fields: [
+                    Field {
+                        name: URI(
+                            URI(
+                                "fully:qualified:urn/for/name/meta/kind",
+                            ),
+                        ),
+                        value: String(
+                            "world",
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@aliased/kind/string",
+                            ),
+                        ),
+                        value: String(
+                            "string",
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@aliased/kind/number",
+                            ),
+                        ),
+                        value: Number(
+                            1234,
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@aliased/kind/uri",
+                            ),
+                        ),
+                        value: Name(
+                            URI(
+                                URI(
+                                    "@aliased/value",
+                                ),
+                            ),
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@aliased/kind/uri",
+                            ),
+                        ),
+                        value: Name(
+                            URI(
+                                URI(
+                                    "f:q:uri",
+                                ),
+                            ),
+                        ),
+                    },
+                ],
+            },
+        ],
+    },
+)
+

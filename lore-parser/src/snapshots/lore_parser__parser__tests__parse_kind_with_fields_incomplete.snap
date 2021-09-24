@@ -1,0 +1,15 @@
+---
+source: lore-parser/src/parser.rs
+expression: snapshot
+
+---
+
+input:
+     kind Name { 
+
+output:
+
+Err(
+    IncompleteFieldBlock,
+)
+

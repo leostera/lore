@@ -1,0 +1,158 @@
+---
+source: lore-parser/src/parser.rs
+expression: snapshot
+
+---
+
+input:
+    
+                attr Name {
+                    @label/en "Name"
+                    @label/es "Nombre"
+                    @comment/en ""
+                    @see-also @other/entity
+
+                    @symmetry       :symmetric
+                    @reflexivity    :reflexive
+                    @lore/disjoint-with  "oops"
+
+                    @domain      User
+                    @range       @lore/string
+                    @cardinality 1
+                }
+ 
+
+output:
+
+Ok(
+    Structure {
+        items: [
+            Attribute {
+                name: Alias(
+                    "Name",
+                ),
+                fields: [
+                    Field {
+                        name: URI(
+                            URI(
+                                "@label/en",
+                            ),
+                        ),
+                        value: String(
+                            "Name",
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@label/es",
+                            ),
+                        ),
+                        value: String(
+                            "Nombre",
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@comment/en",
+                            ),
+                        ),
+                        value: String(
+                            "",
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@see-also",
+                            ),
+                        ),
+                        value: Name(
+                            URI(
+                                URI(
+                                    "@other/entity",
+                                ),
+                            ),
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@symmetry",
+                            ),
+                        ),
+                        value: Name(
+                            URI(
+                                URI(
+                                    ":symmetric",
+                                ),
+                            ),
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@reflexivity",
+                            ),
+                        ),
+                        value: Name(
+                            URI(
+                                URI(
+                                    ":reflexive",
+                                ),
+                            ),
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@lore/disjoint-with",
+                            ),
+                        ),
+                        value: String(
+                            "oops",
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@domain",
+                            ),
+                        ),
+                        value: Name(
+                            Alias(
+                                "User",
+                            ),
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@range",
+                            ),
+                        ),
+                        value: Name(
+                            URI(
+                                URI(
+                                    "@lore/string",
+                                ),
+                            ),
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@cardinality",
+                            ),
+                        ),
+                        value: Number(
+                            1,
+                        ),
+                    },
+                ],
+            },
+        ],
+    },
+)
+

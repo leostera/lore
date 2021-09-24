@@ -5,10 +5,47 @@ use lore_ast::URI;
 use std::path::PathBuf;
 use thiserror::Error;
 
+struct PeekableLexer<'source> {
+    lexer: Lexer<'source, Token>,
+    peeked: Option<Option<Token>>,
+}
+
+impl<'source> PeekableLexer<'source> {
+    fn new(source: &'source str) -> Self {
+        Self {
+            lexer: Token::lexer(source),
+            peeked: None,
+        }
+    }
+
+    fn peek(&mut self) -> &Option<Token> {
+        if self.peeked.is_none() {
+            self.peeked = Some(self.lexer.next());
+        }
+        self.peeked.as_ref().unwrap()
+    }
+
+    fn slice(&self) -> String {
+        self.lexer.slice().to_string()
+    }
+}
+
+impl<'source> Iterator for PeekableLexer<'source> {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Token> {
+        if let Some(peeked) = self.peeked.take() {
+            peeked
+        } else {
+            self.lexer.next()
+        }
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum ParseError {
     #[error("Expected a URI.")]
-    ExpectedURI,
+    ExpectedURI(Option<Token>),
 
     #[error("The `use` syntax expects a URI.")]
     UseExpectsURI,
@@ -34,8 +71,11 @@ pub enum ParseError {
     #[error("The `kind <name>` syntax is missing a name.")]
     KindIsMissingAName,
 
+    #[error("The `attr <name>` syntax is missing a name.")]
+    AttributeIsMissingAName,
+
     #[error("We expected to find a Name (an Alias or a URI) but found something else instead.")]
-    NameIsInvalid,
+    NameIsInvalid(Option<Token>),
 
     #[error("We expected to find a Name, did you forget it?")]
     NameIsMissing,
@@ -51,6 +91,18 @@ pub enum ParseError {
 
     #[error("We expected to find an Alias, a Kind, an Attribute, or a Relation.")]
     ExpectedTopLevelItem,
+
+    #[error("Did you forget to close this block with a `}}` ? ")]
+    IncompleteFieldBlock,
+
+    #[error("Every field must have a URI on the left side.")]
+    FieldExpectedURI,
+
+    #[error("Every field must have a URI, a String, or a Number on the right side.")]
+    FieldExpectedLiteral(Option<Token>),
+
+    #[error("This literal is wrong I guess")]
+    InvalidLiteral(Option<Token>),
 
     #[error(transparent)]
     FileError(#[from] std::io::Error),
@@ -79,48 +131,55 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<Structure, ParseError> {
-        let mut lexer = Token::lexer(&self.source);
+        let mut lexer = PeekableLexer::new(&self.source);
         Parser::parse_structure(&mut lexer)
     }
 
-    fn parse_structure(mut lex: &mut Lexer<Token>) -> Result<Structure, ParseError> {
+    fn parse_structure(mut lex: &mut PeekableLexer) -> Result<Structure, ParseError> {
         let mut items = vec![];
         while let Some(token) = lex.next() {
-            let item = match token {
-                Token::Using => Parser::parse_using(&mut lex),
-                Token::Prefix => Parser::parse_prefix(&mut lex),
-                Token::Kind => Parser::parse_kind(&mut lex),
-                Token::Attribute => Parser::parse_attr(&mut lex),
-                Token::Relation => Parser::parse_rel(&mut lex),
-                Token::Comment(_) => Parser::parse_comment(&mut lex),
-                _ => Err(ParseError::ExpectedTopLevelItem),
-            }?;
+            let item = Parser::parse_structure_item(&mut lex, token)?;
             items.push(item);
         }
         Ok(Structure::of_items(items))
     }
 
-    fn parse_uri(lex: &mut Lexer<Token>) -> Result<URI, ParseError> {
-        match lex.next() {
-            Some(Token::URI(uri)) => Ok(URI::from_string(uri)),
-            _ => Err(ParseError::ExpectedURI),
+    fn parse_structure_item(
+        mut lex: &mut PeekableLexer,
+        token: Token,
+    ) -> Result<StructureItem, ParseError> {
+        match token {
+            Token::Using => Parser::parse_using(&mut lex),
+            Token::Prefix => Parser::parse_prefix(&mut lex),
+            Token::Kind => Parser::parse_kind(&mut lex),
+            Token::Attribute => Parser::parse_attr(&mut lex),
+            Token::Relation => Parser::parse_rel(&mut lex),
+            Token::Comment(_) => Parser::parse_comment(&mut lex),
+            _ => Err(ParseError::ExpectedTopLevelItem),
         }
     }
 
-    fn parse_name(lex: &mut Lexer<Token>) -> Result<Name, ParseError> {
+    fn parse_uri(lex: &mut PeekableLexer) -> Result<URI, ParseError> {
+        match lex.next() {
+            Some(Token::URI(uri)) => Ok(URI::from_string(uri)),
+            token => Err(ParseError::ExpectedURI(token)),
+        }
+    }
+
+    fn parse_name(lex: &mut PeekableLexer) -> Result<Name, ParseError> {
         match lex.next() {
             Some(Token::URI(uri)) => Ok(Name::URI(URI::from_string(uri))),
             Some(Token::Text(text)) => Ok(Name::Alias(text)),
             None => Err(ParseError::NameIsMissing),
-            _ => Err(ParseError::NameIsInvalid),
+            t => Err(ParseError::NameIsInvalid(t)),
         }
     }
 
-    fn parse_comment(lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
-        Ok(StructureItem::Comment(lex.slice().to_string()))
+    fn parse_comment(lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
+        Ok(StructureItem::Comment(lex.slice()))
     }
 
-    fn parse_prefix(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
+    fn parse_prefix(mut lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
         let uri = match Parser::parse_uri(&mut lex) {
             Ok(uri) => Ok(uri),
             _ => Err(ParseError::UseExpectsURI),
@@ -139,7 +198,7 @@ impl Parser {
         Ok(StructureItem::Alias { uri, prefix })
     }
 
-    fn parse_using(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
+    fn parse_using(mut lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
         let uri = match Parser::parse_uri(&mut lex) {
             Ok(uri) => Ok(uri),
             _ => Err(ParseError::UseExpectsURI),
@@ -148,25 +207,29 @@ impl Parser {
         Ok(StructureItem::Namespace { uri })
     }
 
-    fn parse_kind(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
+    fn parse_kind(mut lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
         let name = match Parser::parse_name(&mut lex) {
             Ok(name) => Ok(name),
             _ => Err(ParseError::KindIsMissingAName),
         }?;
 
-        Ok(StructureItem::Kind { name })
+        let fields = Parser::parse_fields(&mut lex)?;
+
+        Ok(StructureItem::Kind { name, fields })
     }
 
-    fn parse_attr(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
+    fn parse_attr(mut lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
         let name = match Parser::parse_name(&mut lex) {
             Ok(name) => Ok(name),
-            _ => Err(ParseError::KindIsMissingAName),
+            _ => Err(ParseError::AttributeIsMissingAName),
         }?;
 
-        Ok(StructureItem::Attribute { name })
+        let fields = Parser::parse_fields(&mut lex)?;
+
+        Ok(StructureItem::Attribute { name, fields })
     }
 
-    fn parse_rel(mut lex: &mut Lexer<Token>) -> Result<StructureItem, ParseError> {
+    fn parse_rel(mut lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
         let subject = match Parser::parse_name(&mut lex) {
             Ok(name) => Ok(name),
             _ => Err(ParseError::RelationExpectedSubjectToBeName),
@@ -187,6 +250,47 @@ impl Parser {
             predicate,
             object,
         })
+    }
+
+    fn parse_fields(mut lex: &mut PeekableLexer) -> Result<Vec<Field>, ParseError> {
+        let next = lex.peek();
+        if let Some(Token::OpenBrace) = next {
+            lex.next();
+            let mut fields = vec![];
+            loop {
+                match Parser::parse_field(&mut lex) {
+                    Ok(field) => fields.push(field),
+
+                    Err(ParseError::NameIsMissing) | Err(ParseError::InvalidLiteral(None)) => {
+                        return Err(ParseError::IncompleteFieldBlock)
+                    }
+
+                    Err(ParseError::InvalidLiteral(Some(Token::ClosedBrace)))
+                    | Err(ParseError::NameIsInvalid(Some(Token::ClosedBrace))) => break,
+
+                    Err(e) => return Err(e),
+                }
+            }
+            Ok(fields)
+        } else {
+            Ok(vec![])
+        }
+    }
+
+    fn parse_field(mut lex: &mut PeekableLexer) -> Result<Field, ParseError> {
+        let name = Parser::parse_name(&mut lex)?;
+        let value = Parser::parse_literal(&mut lex)?;
+        Ok(Field { name, value })
+    }
+
+    fn parse_literal(lex: &mut PeekableLexer) -> Result<Literal, ParseError> {
+        match lex.next() {
+            Some(Token::LiteralString(s)) => Ok(Literal::String(s)),
+            Some(Token::Number(n)) => Ok(Literal::Number(n)),
+            Some(Token::URI(uri)) => Ok(Literal::Name(Name::URI(URI::from_string(uri)))),
+            Some(Token::Text(alias)) => Ok(Literal::Name(Name::Alias(alias))),
+            token => Err(ParseError::InvalidLiteral(token)),
+        }
     }
 }
 
@@ -285,14 +389,16 @@ output:
 
             attr Name
 
-            attr spotify:field:play_count
+            attr spotify:field:play_count {
+                @test/field 1234
+            }
 
             kind spotify:kind:Album
 
             prefix spotify:kind:song as @Song
 
             kind Song
-        "#
+       "#
     );
 
     test!(
@@ -310,5 +416,47 @@ rel Name @lore/rel/asString @lore/String
 
 
         "#
+    );
+
+    test!(parse_attr_with_fields_incomplete, r#" attr Name { "#);
+
+    test!(parse_attr_with_fields_empty, r#" attr Name {} "#);
+
+    test!(
+        parse_attr_with_fields_one,
+        r#"
+                attr Name {
+                    @label/en "Name"
+                    @label/es "Nombre"
+                    @comment/en ""
+                    @see-also @other/entity
+
+                    @symmetry       :symmetric
+                    @reflexivity    :reflexive
+                    @lore/disjoint-with  "oops"
+
+                    @domain      User
+                    @range       @lore/string
+                    @cardinality 1
+                }
+ "#
+    );
+
+    test!(parse_kind_with_fields_incomplete, r#" kind Name { "#);
+
+    test!(parse_kind_with_fields_empty, r#" kind Name {} "#);
+
+    test!(
+        parse_kind_with_fields_one,
+        r#" kind Name {
+
+            fully:qualified:urn/for/name/meta/kind "world"
+
+            @aliased/kind/string "string"
+            @aliased/kind/number 1234
+            @aliased/kind/uri @aliased/value
+            @aliased/kind/uri f:q:uri
+
+        } "#
     );
 }

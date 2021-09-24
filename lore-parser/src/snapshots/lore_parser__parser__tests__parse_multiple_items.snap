@@ -13,14 +13,16 @@ input:
 
             attr Name
 
-            attr spotify:field:play_count
+            attr spotify:field:play_count {
+                @test/field 1234
+            }
 
             kind spotify:kind:Album
 
             prefix spotify:kind:song as @Song
 
             kind Song
-        
+       
 
 output:
 
@@ -44,11 +46,13 @@ Ok(
                         "@Artist",
                     ),
                 ),
+                fields: [],
             },
             Attribute {
                 name: Alias(
                     "Name",
                 ),
+                fields: [],
             },
             Attribute {
                 name: URI(
@@ -56,6 +60,18 @@ Ok(
                         "spotify:field:play_count",
                     ),
                 ),
+                fields: [
+                    Field {
+                        name: URI(
+                            URI(
+                                "@test/field",
+                            ),
+                        ),
+                        value: Number(
+                            1234,
+                        ),
+                    },
+                ],
             },
             Kind {
                 name: URI(
@@ -63,6 +79,7 @@ Ok(
                         "spotify:kind:Album",
                     ),
                 ),
+                fields: [],
             },
             Alias {
                 uri: URI(
@@ -76,6 +93,7 @@ Ok(
                 name: Alias(
                     "Song",
                 ),
+                fields: [],
             },
         ],
     },

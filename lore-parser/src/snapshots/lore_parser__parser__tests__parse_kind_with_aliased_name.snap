@@ -16,6 +16,7 @@ Ok(
                 name: Alias(
                     "Hello",
                 ),
+                fields: [],
             },
         ],
     },
