@@ -24,10 +24,6 @@ impl<'source> PeekableLexer<'source> {
         }
         self.peeked.as_ref().unwrap()
     }
-
-    fn slice(&self) -> String {
-        self.lexer.slice().to_string()
-    }
 }
 
 impl<'source> Iterator for PeekableLexer<'source> {
@@ -104,6 +100,9 @@ pub enum ParseError {
     #[error("This literal is wrong I guess")]
     InvalidLiteral(Option<Token>),
 
+    #[error("Expeceted a comment")]
+    ExpectedAComment,
+
     #[error(transparent)]
     FileError(#[from] std::io::Error),
 
@@ -173,10 +172,6 @@ impl Parser {
             None => Err(ParseError::NameIsMissing),
             t => Err(ParseError::NameIsInvalid(t)),
         }
-    }
-
-    fn parse_comment(lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
-        Ok(StructureItem::Comment(lex.slice()))
     }
 
     fn parse_prefix(mut lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
@@ -252,12 +247,30 @@ impl Parser {
         })
     }
 
+    fn parse_comment(lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
+        Ok(StructureItem::Comment(lex.lexer.slice().to_string()))
+    }
+
+    /// NOTE(@ostera): why do we need this?
+    fn parse_field_comment(lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
+        let next = lex.peek();
+        if let Some(Token::Comment(comment)) = next {
+            let comment = comment.to_string();
+            lex.next();
+            Ok(StructureItem::Comment(comment))
+        } else {
+            Err(ParseError::ExpectedAComment)
+        }
+    }
+
     fn parse_fields(mut lex: &mut PeekableLexer) -> Result<Vec<Field>, ParseError> {
         let next = lex.peek();
         if let Some(Token::OpenBrace) = next {
             lex.next();
             let mut fields = vec![];
             loop {
+                let _ = Parser::parse_field_comment(&mut lex);
+
                 match Parser::parse_field(&mut lex) {
                     Ok(field) => fields.push(field),
 
@@ -405,15 +418,28 @@ output:
         parse_sample,
         r#"
 
-prefix lore:v1 as @lore
+# these are comments for the ontology writers, not
+# about the things!
+attr Name {
+  @doc/en      "A name to call something by."
 
-using dota:v2022/hello/world
+  @label/en    "Name"
+  @label/es    "Nombre"
 
-# hello world
-attr Name
+  @see_also    @lore/attrs/Nickname
 
-rel Name @lore/rel/asString @lore/String
+  # if a thing has a name, then the name means the thing
+  @symmetry    :symmetric
 
+  # a name might be its own name, like "word"
+  @reflexivity :reflexive
+
+  # all things may have names!
+  @domain      @lore/Thing
+
+  # names are usually primitive strings
+  @range       :string
+}
 
         "#
     );

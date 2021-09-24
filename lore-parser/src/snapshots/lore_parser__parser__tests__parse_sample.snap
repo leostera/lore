@@ -7,15 +7,28 @@ expression: snapshot
 input:
     
 
-prefix lore:v1 as @lore
+# these are comments for the ontology writers, not
+# about the things!
+attr Name {
+  @doc/en      "A name to call something by."
 
-using dota:v2022/hello/world
+  @label/en    "Name"
+  @label/es    "Nombre"
 
-# hello world
-attr Name
+  @see_also    @lore/attrs/Nickname
 
-rel Name @lore/rel/asString @lore/String
+  # if a thing has a name, then the name means the thing
+  @symmetry    :symmetric
 
+  # a name might be its own name, like "word"
+  @reflexivity :reflexive
+
+  # all things may have names!
+  @domain      @lore/Thing
+
+  # names are usually primitive strings
+  @range       :string
+}
 
         
 
@@ -24,42 +37,118 @@ output:
 Ok(
     Structure {
         items: [
-            Alias {
-                uri: URI(
-                    "lore:v1",
-                ),
-                prefix: URI(
-                    "@lore",
-                ),
-            },
-            Namespace {
-                uri: URI(
-                    "dota:v2022/hello/world",
-                ),
-            },
             Comment(
-                "# hello world\n",
+                "# these are comments for the ontology writers, not\n",
+            ),
+            Comment(
+                "# about the things!\n",
             ),
             Attribute {
                 name: Alias(
                     "Name",
                 ),
-                fields: [],
-            },
-            Relation {
-                subject: Alias(
-                    "Name",
-                ),
-                predicate: URI(
-                    URI(
-                        "@lore/rel/asString",
-                    ),
-                ),
-                object: URI(
-                    URI(
-                        "@lore/String",
-                    ),
-                ),
+                fields: [
+                    Field {
+                        name: URI(
+                            URI(
+                                "@doc/en",
+                            ),
+                        ),
+                        value: String(
+                            "A name to call something by.",
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@label/en",
+                            ),
+                        ),
+                        value: String(
+                            "Name",
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@label/es",
+                            ),
+                        ),
+                        value: String(
+                            "Nombre",
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@see_also",
+                            ),
+                        ),
+                        value: Name(
+                            URI(
+                                URI(
+                                    "@lore/attrs/Nickname",
+                                ),
+                            ),
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@symmetry",
+                            ),
+                        ),
+                        value: Name(
+                            URI(
+                                URI(
+                                    ":symmetric",
+                                ),
+                            ),
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@reflexivity",
+                            ),
+                        ),
+                        value: Name(
+                            URI(
+                                URI(
+                                    ":reflexive",
+                                ),
+                            ),
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@domain",
+                            ),
+                        ),
+                        value: Name(
+                            URI(
+                                URI(
+                                    "@lore/Thing",
+                                ),
+                            ),
+                        ),
+                    },
+                    Field {
+                        name: URI(
+                            URI(
+                                "@range",
+                            ),
+                        ),
+                        value: Name(
+                            URI(
+                                URI(
+                                    ":string",
+                                ),
+                            ),
+                        ),
+                    },
+                ],
             },
         ],
     },
