@@ -36,6 +36,7 @@ output:
 
 Ok(
     Structure {
+        filename: "$name",
         items: [
             Comment(
                 "# these are comments for the ontology writers, not\n",

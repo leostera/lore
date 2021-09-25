@@ -10,17 +10,20 @@ input:
 output:
 
 Err(
-    [
-        UnresolvedName(
-            Name {
-                alias: Some(
-                    "Band",
-                ),
-                uri: URI(
-                    "lore:uri:unresolved",
-                ),
-            },
+    ValidationError {
+        filename: "$name",
+        error: UnresolvedNames(
+            [
+                Name {
+                    alias: Some(
+                        "Band",
+                    ),
+                    uri: URI(
+                        "lore:uri:unresolved",
+                    ),
+                },
+            ],
         ),
-    ],
+    },
 )
 

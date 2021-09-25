@@ -11,6 +11,7 @@ output:
 
 Ok(
     Structure {
+        filename: "$name",
         items: [
             Relation {
                 subject: Alias(

@@ -19,31 +19,30 @@ input:
 output:
 
 Err(
-    [
-        UnresolvedName(
-            Name {
-                alias: None,
-                uri: URI(
-                    "@Name",
-                ),
-            },
+    ValidationError {
+        filename: "$name",
+        error: UnresolvedNames(
+            [
+                Name {
+                    alias: None,
+                    uri: URI(
+                        "@Name",
+                    ),
+                },
+                Name {
+                    alias: None,
+                    uri: URI(
+                        "@isAuthorOf",
+                    ),
+                },
+                Name {
+                    alias: None,
+                    uri: URI(
+                        "@Band",
+                    ),
+                },
+            ],
         ),
-        UnresolvedName(
-            Name {
-                alias: None,
-                uri: URI(
-                    "@isAuthorOf",
-                ),
-            },
-        ),
-        UnresolvedName(
-            Name {
-                alias: None,
-                uri: URI(
-                    "@Band",
-                ),
-            },
-        ),
-    ],
+    },
 )
 

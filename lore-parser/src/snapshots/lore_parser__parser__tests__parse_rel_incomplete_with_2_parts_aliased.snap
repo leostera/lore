@@ -10,6 +10,21 @@ input:
 output:
 
 Err(
-    RelationExpectedObjectToBeName,
+    ParseError {
+        src: NamedSource {
+            name: "$name",
+            source: "<redacted>",
+        ,
+        span: SourceSpan {
+            offset: SourceOffset(
+                14,
+            ),
+            length: SourceOffset(
+                0,
+            ),
+        },
+        filename: "$name",
+        error: RelationExpectedObjectToBeName,
+    },
 )
 

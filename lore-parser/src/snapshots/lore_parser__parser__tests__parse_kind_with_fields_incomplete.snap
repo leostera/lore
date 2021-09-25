@@ -10,6 +10,21 @@ input:
 output:
 
 Err(
-    IncompleteFieldBlock,
+    ParseError {
+        src: NamedSource {
+            name: "$name",
+            source: "<redacted>",
+        ,
+        span: SourceSpan {
+            offset: SourceOffset(
+                13,
+            ),
+            length: SourceOffset(
+                0,
+            ),
+        },
+        filename: "$name",
+        error: IncompleteFieldBlock,
+    },
 )
 

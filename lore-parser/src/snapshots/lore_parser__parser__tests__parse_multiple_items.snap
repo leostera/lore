@@ -28,6 +28,7 @@ output:
 
 Ok(
     Structure {
+        filename: "$name",
         items: [
             Comment(
                 "# this is a prefix\n",

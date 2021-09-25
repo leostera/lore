@@ -20,6 +20,7 @@ output:
 
 Ok(
     Structure {
+        filename: "$name",
         items: [
             Kind {
                 name: Alias(

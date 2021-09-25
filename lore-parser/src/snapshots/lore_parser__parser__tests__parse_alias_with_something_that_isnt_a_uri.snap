@@ -10,6 +10,21 @@ input:
 output:
 
 Err(
-    UseExpectsURI,
+    ParseError {
+        src: NamedSource {
+            name: "$name",
+            source: "<redacted>",
+        ,
+        span: SourceSpan {
+            offset: SourceOffset(
+                8,
+            ),
+            length: SourceOffset(
+                1,
+            ),
+        },
+        filename: "$name",
+        error: UseExpectsURI,
+    },
 )
 

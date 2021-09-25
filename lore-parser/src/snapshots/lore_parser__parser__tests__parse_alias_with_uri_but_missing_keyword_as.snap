@@ -10,6 +10,21 @@ input:
 output:
 
 Err(
-    PrefixIsMissingTheAsKeyword,
+    ParseError {
+        src: NamedSource {
+            name: "$name",
+            source: "<redacted>",
+        ,
+        span: SourceSpan {
+            offset: SourceOffset(
+                22,
+            ),
+            length: SourceOffset(
+                5,
+            ),
+        },
+        filename: "$name",
+        error: PrefixIsMissingTheAsKeyword,
+    },
 )
 

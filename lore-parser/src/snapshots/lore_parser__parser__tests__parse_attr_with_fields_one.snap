@@ -26,6 +26,7 @@ output:
 
 Ok(
     Structure {
+        filename: "$name",
         items: [
             Attribute {
                 name: Alias(

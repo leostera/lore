@@ -10,6 +10,21 @@ input:
 output:
 
 Err(
-    KindIsMissingAName,
+    ParseError {
+        src: NamedSource {
+            name: "$name",
+            source: "<redacted>",
+        ,
+        span: SourceSpan {
+            offset: SourceOffset(
+                4,
+            ),
+            length: SourceOffset(
+                0,
+            ),
+        },
+        filename: "$name",
+        error: KindIsMissingAName,
+    },
 )
 
