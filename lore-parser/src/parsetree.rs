@@ -63,6 +63,7 @@ pub enum StructureItem {
         subject: Name,
         predicate: Name,
         object: Name,
+        fields: Vec<Field>,
     },
 }
 

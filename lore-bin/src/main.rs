@@ -48,6 +48,12 @@ enum Command {
     Validate {
         #[structopt(name = "INPUT", parse(from_os_str))]
         inputs: Vec<PathBuf>,
+
+        #[structopt(
+            long = "dump-ast",
+            help = "prints the AST of the file on successful parsing"
+        )]
+        dump_ast: bool,
     },
 
     Codegen {
@@ -81,11 +87,14 @@ enum Command {
 impl Command {
     pub fn run(self) -> Result<()> {
         match self {
-            Command::Validate { inputs } => {
+            Command::Validate { inputs, dump_ast } => {
                 for input in inputs {
                     let mut parser = lore_parser::Parser::for_file(input.clone())?;
                     let validator = lore_parser::Validator::new();
-                    let _ = validator.validate(parser.parse()?)?;
+                    let result = validator.validate(parser.parse()?)?;
+                    if dump_ast {
+                        dbg!(result);
+                    }
                 }
                 Ok(())
             }

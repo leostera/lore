@@ -22,6 +22,7 @@ Ok(
                         "spotify:kind:artist",
                     ),
                 },
+                fields: [],
             },
         ],
         attributes: [],

@@ -23,6 +23,7 @@ Ok(
                         "spotify:attr/name",
                     ),
                 },
+                fields: [],
             },
         ],
         relations: [],

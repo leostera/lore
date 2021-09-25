@@ -28,6 +28,7 @@ Store {
             "dota:ontology:2022/Hero",
         ),
     },
+    fields: [],
 }
   }
   attributes: {

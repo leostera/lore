@@ -21,6 +21,7 @@ Store {
             "dota:ontology:v2021/Hero",
         ),
     },
+    fields: [],
 }
   }
   attributes: {

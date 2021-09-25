@@ -1,0 +1,123 @@
+---
+source: lore-parser/src/validator.rs
+expression: snapshot
+
+---
+
+input:
+    
+        using hello:world
+        kind person {
+            lore:v1/doc """hello"""
+        }
+        attr name {
+            lore:v1/doc 1234
+        }
+        rel person has name {
+            lore:v1/doc :no-doc
+        }
+        
+
+output:
+
+Ok(
+    Structure {
+        kinds: [
+            Kind {
+                name: Name {
+                    alias: Some(
+                        "person",
+                    ),
+                    uri: URI(
+                        "hello:world/person",
+                    ),
+                },
+                fields: [
+                    Field {
+                        name: Name {
+                            alias: None,
+                            uri: URI(
+                                "lore:v1/doc",
+                            ),
+                        },
+                        value: String(
+                            "hello",
+                        ),
+                    },
+                ],
+            },
+        ],
+        attributes: [
+            Attribute {
+                name: Name {
+                    alias: Some(
+                        "name",
+                    ),
+                    uri: URI(
+                        "hello:world/name",
+                    ),
+                },
+                fields: [
+                    Field {
+                        name: Name {
+                            alias: None,
+                            uri: URI(
+                                "lore:v1/doc",
+                            ),
+                        },
+                        value: Number(
+                            1234,
+                        ),
+                    },
+                ],
+            },
+        ],
+        relations: [
+            Relation {
+                subject: Name {
+                    alias: Some(
+                        "person",
+                    ),
+                    uri: URI(
+                        "hello:world/person",
+                    ),
+                },
+                predicate: Name {
+                    alias: Some(
+                        "has",
+                    ),
+                    uri: URI(
+                        "hello:world/has",
+                    ),
+                },
+                object: Name {
+                    alias: Some(
+                        "name",
+                    ),
+                    uri: URI(
+                        "hello:world/name",
+                    ),
+                },
+                fields: [
+                    Field {
+                        name: Name {
+                            alias: None,
+                            uri: URI(
+                                "lore:v1/doc",
+                            ),
+                        },
+                        value: Name(
+                            Name {
+                                alias: None,
+                                uri: URI(
+                                    ":no-doc",
+                                ),
+                            },
+                        ),
+                    },
+                ],
+            },
+        ],
+    },
+)
+

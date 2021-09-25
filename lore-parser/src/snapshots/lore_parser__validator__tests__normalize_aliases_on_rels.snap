@@ -38,6 +38,7 @@ Ok(
                         "spotify:attr:Name",
                     ),
                 },
+                fields: [],
             },
         ],
     },

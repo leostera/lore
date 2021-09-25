@@ -18,6 +18,7 @@ Store {
             "spotify:kind:artist",
         ),
     },
+    fields: [],
 }
   }
   attributes: {

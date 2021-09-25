@@ -27,6 +27,26 @@ Ok(
                         "hello:world/name",
                     ),
                 },
+                fields: [
+                    Field {
+                        name: Name {
+                            alias: Some(
+                                "wat",
+                            ),
+                            uri: URI(
+                                "hello:world/wat",
+                            ),
+                        },
+                        value: Name(
+                            Name {
+                                alias: None,
+                                uri: URI(
+                                    ":yes",
+                                ),
+                            },
+                        ),
+                    },
+                ],
             },
         ],
         relations: [],

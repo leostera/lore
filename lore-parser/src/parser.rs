@@ -274,10 +274,13 @@ impl Parser {
             _ => Err(SyntaxError::RelationExpectedObjectToBeName),
         }?;
 
+        let fields = Parser::parse_fields(&mut lex)?;
+
         Ok(StructureItem::Relation {
             subject,
             predicate,
             object,
+            fields,
         })
     }
 
@@ -285,7 +288,7 @@ impl Parser {
         Ok(StructureItem::Comment(lex.lexer.slice().to_string()))
     }
 
-    /// NOTE(@ostera): why do we need this?
+    /// TODO(@ostera): get rid of this!
     fn parse_field_comment(lex: &mut PeekableLexer) -> Result<StructureItem, SyntaxError> {
         let next = lex.peek();
         if let Some(Token::Comment(comment)) = next {
@@ -312,8 +315,11 @@ impl Parser {
                         return Err(SyntaxError::IncompleteFieldBlock)
                     }
 
-                    Err(SyntaxError::InvalidLiteral(Some(Token::ClosedBrace)))
-                    | Err(SyntaxError::NameIsInvalid(Some(Token::ClosedBrace))) => break,
+                    Err(SyntaxError::NameIsInvalid(Some(Token::Comment(_)))) => continue,
+
+                    Err(SyntaxError::NameIsInvalid(Some(Token::ClosedBrace))) => {
+                        break;
+                    }
 
                     Err(e) => return Err(e),
                 }
@@ -333,6 +339,7 @@ impl Parser {
     fn parse_literal(lex: &mut PeekableLexer) -> Result<Literal, SyntaxError> {
         match lex.next() {
             Some(Token::LiteralString(s)) => Ok(Literal::String(s)),
+            Some(Token::MultiLineLiteralString(s)) => Ok(Literal::String(s)),
             Some(Token::Number(n)) => Ok(Literal::Number(n)),
             Some(Token::URI(uri)) => Ok(Literal::Name(Name::URI(URI::from_string(uri)))),
             Some(Token::Text(alias)) => Ok(Literal::Name(Name::Alias(alias))),

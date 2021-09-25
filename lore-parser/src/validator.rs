@@ -6,7 +6,14 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Validator {}
+pub struct Validator {
+    local_namespace: Option<URI>,
+    relations: Vec<lore_ast::Relation>,
+    kinds: Vec<lore_ast::Kind>,
+    attributes: Vec<lore_ast::Attribute>,
+    aliases: HashMap<String, URI>,
+    unresolved_names: Vec<lore_ast::Name>,
+}
 
 fn format_names(names: Vec<lore_ast::Name>) -> String {
     let mut strs = vec![];
@@ -42,144 +49,119 @@ impl Validator {
         Validator::default()
     }
 
-    pub fn validate(&self, parsetree: Structure) -> Result<lore_ast::Structure, ValidationError> {
-        let mut unaliased_names = vec![];
-
-        let mut local_namespace: Option<URI> = None;
-        let mut relations: Vec<lore_ast::Relation> = vec![];
-        let mut kinds: Vec<lore_ast::Kind> = vec![];
-        let mut attributes: Vec<lore_ast::Attribute> = vec![];
-        let mut aliases: HashMap<String, URI> = HashMap::new();
-
+    pub fn validate(
+        mut self,
+        parsetree: Structure,
+    ) -> Result<lore_ast::Structure, ValidationError> {
         for item in parsetree.items() {
             match item {
                 StructureItem::Namespace { uri } => {
-                    local_namespace.replace(uri.clone());
+                    self.local_namespace.replace(uri.clone());
                 }
 
                 StructureItem::Alias { uri, prefix } => {
-                    aliases.insert(prefix.clone().to_string(), uri.clone());
+                    self.aliases.insert(prefix.clone().to_string(), uri.clone());
+                }
+                _ => continue,
+            }
+        }
+
+        for item in parsetree.items() {
+            match item {
+                StructureItem::Kind { name, fields } => {
+                    let name = self.normalize_name(name);
+                    let fields = self.normalize_fields(&fields);
+                    self.kinds.push(lore_ast::Kind { name, fields });
                 }
 
-                StructureItem::Kind { name, .. } => {
-                    let name: lore_ast::Name = name.into();
-                    kinds.push(lore_ast::Kind { name });
-                }
-
-                StructureItem::Attribute { name, .. } => {
-                    let name: lore_ast::Name = name.into();
-                    attributes.push(lore_ast::Attribute { name });
+                StructureItem::Attribute { name, fields } => {
+                    let name = self.normalize_name(name);
+                    let fields = self.normalize_fields(&fields);
+                    self.attributes.push(lore_ast::Attribute { name, fields });
                 }
 
                 StructureItem::Relation {
                     subject,
                     predicate,
                     object,
-                } => relations.push(lore_ast::Relation {
-                    subject: subject.into(),
-                    predicate: predicate.into(),
-                    object: object.into(),
-                }),
+                    fields,
+                } => {
+                    let subject = self.normalize_name(subject);
+                    let predicate = self.normalize_name(predicate);
+                    let object = self.normalize_name(object);
+                    let fields = self.normalize_fields(&fields);
+                    self.relations.push(lore_ast::Relation {
+                        subject,
+                        predicate,
+                        object,
+                        fields,
+                    })
+                }
 
-                StructureItem::Comment(_) => (),
+                _ => (),
             }
         }
 
-        for attribute in &mut attributes {
-            if attribute.name.is_unresolved() {
-                if let Some(uri) = Validator::normalize_prefixed_uri(
-                    &attribute.name,
-                    &aliases,
-                    &local_namespace,
-                    &mut unaliased_names,
-                ) {
-                    attribute.name.set_uri(&uri);
-                }
-            }
-        }
-
-        for kind in &mut kinds {
-            if kind.name.is_unresolved() {
-                if let Some(uri) = Validator::normalize_prefixed_uri(
-                    &kind.name,
-                    &aliases,
-                    &local_namespace,
-                    &mut unaliased_names,
-                ) {
-                    kind.name.set_uri(&uri);
-                }
-            }
-        }
-
-        for relation in &mut relations {
-            if relation.subject.is_unresolved() {
-                if let Some(uri) = Validator::normalize_prefixed_uri(
-                    &relation.subject,
-                    &aliases,
-                    &local_namespace,
-                    &mut unaliased_names,
-                ) {
-                    relation.subject.set_uri(&uri);
-                }
-            }
-            if relation.predicate.is_unresolved() {
-                if let Some(uri) = Validator::normalize_prefixed_uri(
-                    &relation.predicate,
-                    &aliases,
-                    &local_namespace,
-                    &mut unaliased_names,
-                ) {
-                    relation.predicate.set_uri(&uri);
-                }
-            }
-            if relation.object.is_unresolved() {
-                if let Some(uri) = Validator::normalize_prefixed_uri(
-                    &relation.object,
-                    &aliases,
-                    &local_namespace,
-                    &mut unaliased_names,
-                ) {
-                    relation.object.set_uri(&uri);
-                }
-            }
-        }
-
-        if unaliased_names.is_empty() {
+        if self.unresolved_names.is_empty() {
             Ok(lore_ast::Structure {
-                kinds,
-                attributes,
-                relations,
+                kinds: self.kinds,
+                attributes: self.attributes,
+                relations: self.relations,
             })
         } else {
             Err(ValidationError {
                 filename: parsetree.filename().clone(),
-                error: SemanticError::UnresolvedNames(unaliased_names),
+                error: SemanticError::UnresolvedNames(self.unresolved_names.clone()),
             })
         }
     }
 
-    pub fn normalize_prefixed_uri(
-        name: &lore_ast::Name,
-        aliases: &HashMap<String, URI>,
-        local_namespace: &Option<URI>,
-        unaliased_names: &mut Vec<lore_ast::Name>,
-    ) -> Option<lore_ast::URI> {
-        if let Some(alias) = &name.alias {
-            if let Some(uri) = &local_namespace {
-                Some(uri.join(alias))
-            } else {
-                unaliased_names.push(name.clone());
-                None
-            }
-        } else {
-            for (prefix, expanded_uri) in aliases.into_iter() {
-                if name.uri.has_prefix(prefix) {
-                    return Some(name.uri.expand_prefix(prefix, expanded_uri));
+    pub fn normalize_name(&mut self, name: &Name) -> lore_ast::Name {
+        let mut name: lore_ast::Name = name.into();
+        let alias = name.alias.clone();
+        match alias {
+            Some(alias) => {
+                if let Some(uri) = &self.local_namespace {
+                    name.set_uri(&uri.join(&alias));
+                } else {
+                    self.unresolved_names.push(name.clone());
                 }
             }
-            unaliased_names.push(name.clone());
-            None
+            None => {
+                if name.is_unresolved() {
+                    for (prefix, expanded_uri) in (&self.aliases).into_iter() {
+                        if name.uri.has_prefix(&prefix) {
+                            name.set_uri(&name.uri.expand_prefix(&prefix, &expanded_uri));
+                            return name;
+                        }
+                    }
+                    self.unresolved_names.push(name.clone());
+                }
+            }
         }
+        name
+    }
+
+    pub fn normalize_literal(&mut self, lit: &Literal) -> lore_ast::Literal {
+        match lit {
+            Literal::Number(n) => lore_ast::Literal::Number(*n),
+            Literal::String(s) => lore_ast::Literal::String(s.to_string()),
+            Literal::Name(n) => lore_ast::Literal::Name(self.normalize_name(n)),
+        }
+    }
+
+    pub fn normalize_fields(&mut self, fields: &[Field]) -> Vec<lore_ast::Field> {
+        let mut ast_fields = vec![];
+
+        for field in fields {
+            let field = lore_ast::Field {
+                name: self.normalize_name(&field.name),
+                value: self.normalize_literal(&field.value),
+            };
+            ast_fields.push(field);
+        }
+
+        ast_fields
     }
 }
 
@@ -265,6 +247,22 @@ output:
         using hello:world
         attr name {
             wat :yes
+        }
+        "#
+    );
+
+    test!(
+        normalize_meta_attrs_on_kind,
+        r#"
+        using hello:world
+        kind person {
+            lore:v1/doc """hello"""
+        }
+        attr name {
+            lore:v1/doc 1234
+        }
+        rel person has name {
+            lore:v1/doc :no-doc
         }
         "#
     );

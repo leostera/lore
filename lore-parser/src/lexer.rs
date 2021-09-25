@@ -29,8 +29,11 @@ pub enum Token {
     #[token(":")]
     Colon,
 
-    #[regex("\"([^\"\\\\]|\\\\.)*\"", |lex| lex.slice()[1..lex.slice().len() -1].parse())]
+    #[regex("(\"([^\"\\\\]|\\\\.)*\")", |lex| lex.slice()[1..lex.slice().len() -1].parse())]
     LiteralString(String),
+
+    #[regex("(\"\"\"([^\"\\\\]|\\\\.)*\"\"\")", |lex| lex.slice()[3..lex.slice().len() -3].parse())]
+    MultiLineLiteralString(String),
 
     #[token("{")]
     OpenBrace,
@@ -69,6 +72,31 @@ mod tests {
                 " spotify:artist:2Hkut4rAAyrQxRdof7FVJq ".to_string()
             ))
         );
+    }
+
+    #[test]
+    fn literal_string_single_line() {
+        let mut lex = Token::lexer(r#" "spotify:artist:2Hkut4rAAyrQxRdof7FVJq" "#);
+
+        assert_eq!(
+            lex.next(),
+            Some(Token::LiteralString(
+                "spotify:artist:2Hkut4rAAyrQxRdof7FVJq".to_string()
+            ))
+        );
+    }
+    #[test]
+    fn literal_string_multi_line() {
+        let mut lex = Token::lexer(
+            r#" """
+            spotify:artist:2Hkut4rAAyrQxRdof7FVJq
+            more lines
+            """ "#,
+        );
+
+        assert_eq!(
+            lex.next(),
+            Some(Token::MultiLineLiteralString("\n            spotify:artist:2Hkut4rAAyrQxRdof7FVJq\n            more lines\n            ".to_string())));
     }
 
     #[test]

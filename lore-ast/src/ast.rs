@@ -41,22 +41,36 @@ impl Name {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Literal {
+    Number(u64),
+    String(String),
+    Name(Name),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Field {
+    pub name: Name,
+    pub value: Literal,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Attribute {
     pub name: Name,
+    pub fields: Vec<Field>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Kind {
     pub name: Name,
+    pub fields: Vec<Field>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Relation {
     pub subject: Name,
-
     pub predicate: Name,
-
     pub object: Name,
+    pub fields: Vec<Field>,
 }
 
 /*
