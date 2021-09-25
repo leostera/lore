@@ -10,6 +10,7 @@ edition = "2018"
 lore-ast = { path = "../lore-ast" }
 lore-parser = { path = "../lore-parser" }
 thiserror = "^1"
+miette = "^3"
 
 [dev-dependencies]
 pretty_assertions = "0.7"

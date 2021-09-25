@@ -1,18 +1,40 @@
 use crate::parsetree::*;
 use lore_ast::URI;
+use miette::Diagnostic;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Validator {}
 
-#[derive(Error, Debug, PartialEq, Eq)]
-pub enum ValidationError {
-    #[error("This name cannot be resolved, did you forget to add a `use` alias?")]
-    UnresolvedName(lore_ast::Name),
+fn format_names(names: Vec<lore_ast::Name>) -> String {
+    let mut strs = vec![];
+    for name in names {
+        if let Some(str) = name.alias {
+            strs.push(format!("* {}", str))
+        } else {
+            strs.push(format!("* {}", name.to_string()))
+        }
+    }
+    strs.join("\n").to_string()
+}
 
-    #[error("Runtime error")]
-    Runtime(String),
+#[derive(Error, Debug, Diagnostic)]
+#[diagnostic(code(lore::validator::semantic))]
+pub enum SemanticError {
+    #[error("The follow names cannot be resolved: \n{}\nDid you forget to add a `prefix` alias or a `using` namespace?", format_names(.0.to_vec()))]
+    UnresolvedNames(Vec<lore_ast::Name>),
+}
+
+#[derive(Error, Debug, Diagnostic)]
+#[error("Validation error on file {filename:?}")]
+#[diagnostic(code(lore::validator), url(docsrs))]
+pub struct ValidationError {
+    filename: PathBuf,
+
+    #[source]
+    error: SemanticError,
 }
 
 impl Validator {
@@ -20,11 +42,8 @@ impl Validator {
         Validator::default()
     }
 
-    pub fn validate(
-        &self,
-        parsetree: Structure,
-    ) -> Result<lore_ast::Structure, Vec<ValidationError>> {
-        let mut errors = vec![];
+    pub fn validate(&self, parsetree: Structure) -> Result<lore_ast::Structure, ValidationError> {
+        let mut unaliased_names = vec![];
 
         let mut local_namespace: Option<URI> = None;
         let mut relations: Vec<lore_ast::Relation> = vec![];
@@ -72,7 +91,7 @@ impl Validator {
                     &attribute.name,
                     &aliases,
                     &local_namespace,
-                    &mut errors,
+                    &mut unaliased_names,
                 ) {
                     attribute.name.set_uri(&uri);
                 }
@@ -85,7 +104,7 @@ impl Validator {
                     &kind.name,
                     &aliases,
                     &local_namespace,
-                    &mut errors,
+                    &mut unaliased_names,
                 ) {
                     kind.name.set_uri(&uri);
                 }
@@ -98,7 +117,7 @@ impl Validator {
                     &relation.subject,
                     &aliases,
                     &local_namespace,
-                    &mut errors,
+                    &mut unaliased_names,
                 ) {
                     relation.subject.set_uri(&uri);
                 }
@@ -108,7 +127,7 @@ impl Validator {
                     &relation.predicate,
                     &aliases,
                     &local_namespace,
-                    &mut errors,
+                    &mut unaliased_names,
                 ) {
                     relation.predicate.set_uri(&uri);
                 }
@@ -118,21 +137,24 @@ impl Validator {
                     &relation.object,
                     &aliases,
                     &local_namespace,
-                    &mut errors,
+                    &mut unaliased_names,
                 ) {
                     relation.object.set_uri(&uri);
                 }
             }
         }
 
-        if errors.is_empty() {
+        if unaliased_names.is_empty() {
             Ok(lore_ast::Structure {
                 kinds,
                 attributes,
                 relations,
             })
         } else {
-            Err(errors)
+            Err(ValidationError {
+                filename: parsetree.filename().clone(),
+                error: SemanticError::UnresolvedNames(unaliased_names),
+            })
         }
     }
 
@@ -140,13 +162,13 @@ impl Validator {
         name: &lore_ast::Name,
         aliases: &HashMap<String, URI>,
         local_namespace: &Option<URI>,
-        errors: &mut Vec<ValidationError>,
+        unaliased_names: &mut Vec<lore_ast::Name>,
     ) -> Option<lore_ast::URI> {
         if let Some(alias) = &name.alias {
             if let Some(uri) = &local_namespace {
                 Some(uri.join(alias))
             } else {
-                errors.push(ValidationError::UnresolvedName(name.clone()));
+                unaliased_names.push(name.clone());
                 None
             }
         } else {
@@ -155,7 +177,7 @@ impl Validator {
                     return Some(name.uri.expand_prefix(prefix, expanded_uri));
                 }
             }
-            errors.push(ValidationError::UnresolvedName(name.clone()));
+            unaliased_names.push(name.clone());
             None
         }
     }
@@ -235,6 +257,15 @@ output:
         prefix spotify:attr:Name as @Name
         prefix spotify:rel:hasOne as @hasOne
         rel @Artist @hasOne @Name
+        "#
+    );
+    test!(
+        normalize_aliases_on_meta_attrs,
+        r#"
+        using hello:world
+        attr name {
+            wat :yes
+        }
         "#
     );
 }

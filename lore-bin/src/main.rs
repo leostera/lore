@@ -1,24 +1,6 @@
+use miette::Result;
 use std::path::PathBuf;
 use structopt::StructOpt;
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum CliError {
-    #[error(transparent)]
-    ParseError(#[from] lore_parser::ParseError),
-
-    #[error("Many validation errors oh no")]
-    ValidationError(Vec<lore_parser::ValidationError>),
-
-    #[error(transparent)]
-    StoreError(#[from] lore_store::StoreError),
-
-    #[error(transparent)]
-    TranslationError(#[from] lore_codegen::EmitterError),
-
-    #[error(transparent)]
-    CodegenError(#[from] std::io::Error),
-}
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "lore", about = "a little language to capture reality")]
@@ -97,17 +79,13 @@ enum Command {
 }
 
 impl Command {
-    pub fn run(self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn run(self) -> Result<()> {
         match self {
             Command::Validate { inputs } => {
                 for input in inputs {
                     let mut parser = lore_parser::Parser::for_file(input.clone())?;
                     let validator = lore_parser::Validator::new();
-                    if let Err(error) = validator.validate(parser.parse()?) {
-                        println!("{}:\n\t{:#?}", input.to_str().unwrap(), error)
-                    } else {
-                        println!("{}\tOK", input.to_str().unwrap())
-                    }
+                    let _ = validator.validate(parser.parse()?)?;
                 }
                 Ok(())
             }
@@ -119,27 +97,22 @@ impl Command {
             } => {
                 let mut store = lore_store::Store::new();
                 for input in inputs {
-                    let mut parser = lore_parser::Parser::for_file(input.clone())
-                        .map_err(CliError::ParseError)?;
+                    let mut parser = lore_parser::Parser::for_file(input.clone())?;
                     let validator = lore_parser::Validator::new();
-                    let ast = validator
-                        .validate(parser.parse().map_err(CliError::ParseError)?)
-                        .map_err(CliError::ValidationError)?;
-                    store.add_tree(ast).map_err(CliError::StoreError)?;
+                    let ast = validator.validate(parser.parse()?)?;
+                    store.add_tree(ast)?;
                 }
 
                 let source_set = match target {
                     TargetLang::OCaml => {
                         let emitter = lore_codegen::OCamlEmitter::new();
-                        emitter
-                            .translate(&store)
-                            .map_err(CliError::TranslationError)?
+                        emitter.translate(&store)?
                     }
                     _ => lore_codegen::SourceSet::empty(),
                 };
 
                 for source in source_set.sources() {
-                    source.write(&output_dir).map_err(CliError::CodegenError)?;
+                    source.write(&output_dir)?;
                 }
 
                 Ok(())
@@ -148,6 +121,6 @@ impl Command {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<()> {
     Args::from_args().cmd.run()
 }

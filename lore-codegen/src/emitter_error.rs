@@ -1,10 +1,10 @@
+use miette::Diagnostic;
+use std::path::PathBuf;
 use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq, Eq)]
-pub enum EmitterError {
-    #[error("Expected a URI.")]
-    ExpectedURI,
-
-    #[error("Runtime error")]
-    Runtime(String),
+#[derive(Diagnostic, Error, Debug, PartialEq, Eq)]
+#[error("Error emitting file {filename:?}")]
+#[diagnostic(code(lore::codegen::emitter), url(docsrs))]
+pub struct EmitterError {
+    filename: PathBuf,
 }

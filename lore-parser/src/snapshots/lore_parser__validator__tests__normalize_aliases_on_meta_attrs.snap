@@ -1,0 +1,35 @@
+---
+source: lore-parser/src/validator.rs
+expression: snapshot
+
+---
+
+input:
+    
+        using hello:world
+        attr name {
+            wat :yes
+        }
+        
+
+output:
+
+Ok(
+    Structure {
+        kinds: [],
+        attributes: [
+            Attribute {
+                name: Name {
+                    alias: Some(
+                        "name",
+                    ),
+                    uri: URI(
+                        "hello:world/name",
+                    ),
+                },
+            },
+        ],
+        relations: [],
+    },
+)
+

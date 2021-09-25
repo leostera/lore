@@ -15,6 +15,7 @@ lore-store = { path = "../lore-store" }
 lore-codegen = { path = "../lore-codegen" }
 structopt = { version = "^0", default-features = false }
 thiserror = "^1"
+miette = { version = "^3", features = ["fancy"] }
 
 [dev-dependencies]
 insta = "1.8"

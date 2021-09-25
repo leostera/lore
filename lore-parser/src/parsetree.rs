@@ -1,4 +1,5 @@
 use lore_ast::URI;
+use std::path::PathBuf;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Pos {
@@ -67,15 +68,20 @@ pub enum StructureItem {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Structure {
+    filename: PathBuf,
     items: Vec<StructureItem>,
 }
 
 impl Structure {
-    pub fn of_items(items: Vec<StructureItem>) -> Structure {
-        Structure { items }
+    pub fn new(items: Vec<StructureItem>, filename: PathBuf) -> Structure {
+        Structure { items, filename }
     }
 
     pub fn items(&self) -> &Vec<StructureItem> {
         &self.items
+    }
+
+    pub fn filename(&self) -> &PathBuf {
+        &self.filename
     }
 }

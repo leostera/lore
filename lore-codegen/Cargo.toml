@@ -9,6 +9,7 @@ lore-ast = { path = "../lore-ast" }
 lore-store = { path = "../lore-store" }
 thiserror = "^1"
 graphql-parser = "^0"
+miette = "^3"
 
 [dev-dependencies]
 lore-parser = { path = "../lore-parser" }

@@ -1,14 +1,16 @@
 use lore_ast::*;
+use miette::Diagnostic;
 use std::collections::HashMap;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Diagnostic, Error, Debug)]
+#[diagnostic(code(lore::store), url(docsrs))]
 pub enum StoreError {
     #[error(transparent)]
     ParseError(#[from] lore_parser::ParseError),
 
-    #[error("Many validation errors oh no")]
-    ValidationError(Vec<lore_parser::ValidationError>),
+    #[error(transparent)]
+    ValidationError(#[from] lore_parser::ValidationError),
 
     #[error("Runtime error")]
     Runtime(String),

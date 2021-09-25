@@ -2,6 +2,7 @@ use crate::lexer::Token;
 use crate::parsetree::*;
 use logos::{Lexer, Logos};
 use lore_ast::URI;
+use miette::{Diagnostic, NamedSource, SourceSpan};
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -39,7 +40,7 @@ impl<'source> Iterator for PeekableLexer<'source> {
 }
 
 #[derive(Error, Debug)]
-pub enum ParseError {
+pub enum SyntaxError {
     #[error("Expected a URI.")]
     ExpectedURI(Option<Token>),
 
@@ -47,18 +48,14 @@ pub enum ParseError {
     UseExpectsURI,
 
     #[error(
-        "The `prefix` syntax should follow the format: prefix <uri> as @<name>. Did you forget the 'as'?"
+        "The `prefix` syntax should follow the format:\n\tprefix <uri> as @<name>.\n\nDid you forget the 'as'?"
     )]
     PrefixIsMissingTheAsKeyword,
 
-    #[error(r#"
-        The `prefix` syntax should follow the format: prefix <uri> as @<name>. Did you forget to specify a name?
-    "#)]
+    #[error("The `prefix` syntax should follow the format:\n\tprefix <uri> as @<name>.\n\nDid you forget to specify a name?")]
     PrefixIsMissingTheAliasedName,
 
-    #[error(r#"
-        The `prefix` syntax should follow the format: prefix <uri> as @<name>. Did you forget the @ before the prefix name?
-    "#)]
+    #[error("The `prefix` syntax should follow the format:\n\tprefix <uri> as @<name>.\n\nDid you forget the @ before the prefix name?")]
     PrefixShouldBeginWithAnAt,
 
     #[error("")]
@@ -76,13 +73,13 @@ pub enum ParseError {
     #[error("We expected to find a Name, did you forget it?")]
     NameIsMissing,
 
-    #[error("The `rel` syntax should follow the format: rel <subject> <predicate> <object>. All 3 must be URIs or aliased names.")]
+    #[error("The `rel` syntax should follow the format:\n\trel <subject> <predicate> <object>.\nAll 3 must be URIs or aliased names.")]
     RelationExpectedSubjectToBeName,
 
-    #[error("The `rel` syntax should follow the format: rel <subject> <predicate> <object>. All 3 must be URIs or aliased names.")]
+    #[error("The `rel` syntax should follow the format:\n\trel <subject> <predicate> <object>.\nAll 3 must be URIs or aliased names.")]
     RelationExpectedPredicateToBeName,
 
-    #[error("The `rel` syntax should follow the format: rel <subject> <predicate> <object>. All 3 must be URIs or aliased names.")]
+    #[error("The `rel` syntax should follow the format:\n\trel <subject> <predicate> <object>.\nAll 3 must be URIs or aliased names.")]
     RelationExpectedObjectToBeName,
 
     #[error("We expected to find an Alias, a Kind, an Attribute, or a Relation.")]
@@ -102,12 +99,33 @@ pub enum ParseError {
 
     #[error("Expeceted a comment")]
     ExpectedAComment,
+}
 
+#[derive(Error, Debug, Diagnostic)]
+#[error("{error:?}")]
+#[diagnostic(
+    code(lore::parser),
+    url(docsrs),
+    help("It seems we have a parsing error!")
+)]
+pub struct ParseError {
+    #[source_code]
+    src: NamedSource,
+
+    #[label("section")]
+    span: SourceSpan,
+
+    filename: String,
+
+    #[source]
+    error: SyntaxError,
+}
+
+#[derive(Error, Debug, Diagnostic)]
+#[diagnostic(code(lore::parser), url(docsrs), help(r#"This could be just a transient issue, feel free to try again. If it continues to happen make sure you have the right permissions to read/write to these files."#))]
+pub enum FileError {
     #[error(transparent)]
-    FileError(#[from] std::io::Error),
-
-    #[error("Runtime error")]
-    Runtime(String),
+    Io(#[from] std::io::Error),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -117,8 +135,8 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn for_file(file: PathBuf) -> Result<Parser, ParseError> {
-        let source = std::fs::read_to_string(&file).map_err(ParseError::FileError)?;
+    pub fn for_file(file: PathBuf) -> Result<Parser, FileError> {
+        let source = std::fs::read_to_string(&file).map_err(|io| FileError::Io(io))?;
         Ok(Parser { file, source })
     }
 
@@ -131,22 +149,38 @@ impl Parser {
 
     pub fn parse(&mut self) -> Result<Structure, ParseError> {
         let mut lexer = PeekableLexer::new(&self.source);
-        Parser::parse_structure(&mut lexer)
+        let items = Parser::parse_structure(&mut lexer).map_err(|error| {
+            let span: SourceSpan = {
+                let range = lexer.lexer.span();
+                (range.start, range.end - range.start).into()
+            };
+            let filename = self.file.to_str().unwrap().to_string();
+            let src = NamedSource::new(filename.clone(), self.source.clone());
+
+            ParseError {
+                filename,
+                src,
+                span,
+                error,
+            }
+        })?;
+
+        Ok(Structure::new(items, self.file.clone()))
     }
 
-    fn parse_structure(mut lex: &mut PeekableLexer) -> Result<Structure, ParseError> {
+    fn parse_structure(mut lex: &mut PeekableLexer) -> Result<Vec<StructureItem>, SyntaxError> {
         let mut items = vec![];
         while let Some(token) = lex.next() {
             let item = Parser::parse_structure_item(&mut lex, token)?;
             items.push(item);
         }
-        Ok(Structure::of_items(items))
+        Ok(items)
     }
 
     fn parse_structure_item(
         mut lex: &mut PeekableLexer,
         token: Token,
-    ) -> Result<StructureItem, ParseError> {
+    ) -> Result<StructureItem, SyntaxError> {
         match token {
             Token::Using => Parser::parse_using(&mut lex),
             Token::Prefix => Parser::parse_prefix(&mut lex),
@@ -154,58 +188,58 @@ impl Parser {
             Token::Attribute => Parser::parse_attr(&mut lex),
             Token::Relation => Parser::parse_rel(&mut lex),
             Token::Comment(_) => Parser::parse_comment(&mut lex),
-            _ => Err(ParseError::ExpectedTopLevelItem),
+            _ => Err(SyntaxError::ExpectedTopLevelItem),
         }
     }
 
-    fn parse_uri(lex: &mut PeekableLexer) -> Result<URI, ParseError> {
+    fn parse_uri(lex: &mut PeekableLexer) -> Result<URI, SyntaxError> {
         match lex.next() {
             Some(Token::URI(uri)) => Ok(URI::from_string(uri)),
-            token => Err(ParseError::ExpectedURI(token)),
+            token => Err(SyntaxError::ExpectedURI(token)),
         }
     }
 
-    fn parse_name(lex: &mut PeekableLexer) -> Result<Name, ParseError> {
+    fn parse_name(lex: &mut PeekableLexer) -> Result<Name, SyntaxError> {
         match lex.next() {
             Some(Token::URI(uri)) => Ok(Name::URI(URI::from_string(uri))),
             Some(Token::Text(text)) => Ok(Name::Alias(text)),
-            None => Err(ParseError::NameIsMissing),
-            t => Err(ParseError::NameIsInvalid(t)),
+            None => Err(SyntaxError::NameIsMissing),
+            t => Err(SyntaxError::NameIsInvalid(t)),
         }
     }
 
-    fn parse_prefix(mut lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
+    fn parse_prefix(mut lex: &mut PeekableLexer) -> Result<StructureItem, SyntaxError> {
         let uri = match Parser::parse_uri(&mut lex) {
             Ok(uri) => Ok(uri),
-            _ => Err(ParseError::UseExpectsURI),
+            _ => Err(SyntaxError::UseExpectsURI),
         }?;
 
         match lex.next() {
             Some(Token::As) => Ok(()),
-            _ => Err(ParseError::PrefixIsMissingTheAsKeyword),
+            _ => Err(SyntaxError::PrefixIsMissingTheAsKeyword),
         }?;
 
         let prefix = match Parser::parse_uri(&mut lex) {
             Ok(uri) => Ok(uri),
-            _ => Err(ParseError::PrefixIsMissingTheAliasedName),
+            _ => Err(SyntaxError::PrefixIsMissingTheAliasedName),
         }?;
 
         Ok(StructureItem::Alias { uri, prefix })
     }
 
-    fn parse_using(mut lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
+    fn parse_using(mut lex: &mut PeekableLexer) -> Result<StructureItem, SyntaxError> {
         let uri = match Parser::parse_uri(&mut lex) {
             Ok(uri) => Ok(uri),
-            _ => Err(ParseError::UseExpectsURI),
+            _ => Err(SyntaxError::UseExpectsURI),
         }?;
 
         Ok(StructureItem::Namespace { uri })
     }
 
-    fn parse_kind(mut lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
+    fn parse_kind(mut lex: &mut PeekableLexer) -> Result<StructureItem, SyntaxError> {
         let name = match Parser::parse_name(&mut lex) {
             Ok(name) => Ok(name),
-            _ => Err(ParseError::KindIsMissingAName),
+            _ => Err(SyntaxError::KindIsMissingAName),
         }?;
 
         let fields = Parser::parse_fields(&mut lex)?;
@@ -213,10 +247,10 @@ impl Parser {
         Ok(StructureItem::Kind { name, fields })
     }
 
-    fn parse_attr(mut lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
+    fn parse_attr(mut lex: &mut PeekableLexer) -> Result<StructureItem, SyntaxError> {
         let name = match Parser::parse_name(&mut lex) {
             Ok(name) => Ok(name),
-            _ => Err(ParseError::AttributeIsMissingAName),
+            _ => Err(SyntaxError::AttributeIsMissingAName),
         }?;
 
         let fields = Parser::parse_fields(&mut lex)?;
@@ -224,20 +258,20 @@ impl Parser {
         Ok(StructureItem::Attribute { name, fields })
     }
 
-    fn parse_rel(mut lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
+    fn parse_rel(mut lex: &mut PeekableLexer) -> Result<StructureItem, SyntaxError> {
         let subject = match Parser::parse_name(&mut lex) {
             Ok(name) => Ok(name),
-            _ => Err(ParseError::RelationExpectedSubjectToBeName),
+            _ => Err(SyntaxError::RelationExpectedSubjectToBeName),
         }?;
 
         let predicate = match Parser::parse_name(&mut lex) {
             Ok(name) => Ok(name),
-            _ => Err(ParseError::RelationExpectedPredicateToBeName),
+            _ => Err(SyntaxError::RelationExpectedPredicateToBeName),
         }?;
 
         let object = match Parser::parse_name(&mut lex) {
             Ok(name) => Ok(name),
-            _ => Err(ParseError::RelationExpectedObjectToBeName),
+            _ => Err(SyntaxError::RelationExpectedObjectToBeName),
         }?;
 
         Ok(StructureItem::Relation {
@@ -247,23 +281,23 @@ impl Parser {
         })
     }
 
-    fn parse_comment(lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
+    fn parse_comment(lex: &mut PeekableLexer) -> Result<StructureItem, SyntaxError> {
         Ok(StructureItem::Comment(lex.lexer.slice().to_string()))
     }
 
     /// NOTE(@ostera): why do we need this?
-    fn parse_field_comment(lex: &mut PeekableLexer) -> Result<StructureItem, ParseError> {
+    fn parse_field_comment(lex: &mut PeekableLexer) -> Result<StructureItem, SyntaxError> {
         let next = lex.peek();
         if let Some(Token::Comment(comment)) = next {
             let comment = comment.to_string();
             lex.next();
             Ok(StructureItem::Comment(comment))
         } else {
-            Err(ParseError::ExpectedAComment)
+            Err(SyntaxError::ExpectedAComment)
         }
     }
 
-    fn parse_fields(mut lex: &mut PeekableLexer) -> Result<Vec<Field>, ParseError> {
+    fn parse_fields(mut lex: &mut PeekableLexer) -> Result<Vec<Field>, SyntaxError> {
         let next = lex.peek();
         if let Some(Token::OpenBrace) = next {
             lex.next();
@@ -274,12 +308,12 @@ impl Parser {
                 match Parser::parse_field(&mut lex) {
                     Ok(field) => fields.push(field),
 
-                    Err(ParseError::NameIsMissing) | Err(ParseError::InvalidLiteral(None)) => {
-                        return Err(ParseError::IncompleteFieldBlock)
+                    Err(SyntaxError::NameIsMissing) | Err(SyntaxError::InvalidLiteral(None)) => {
+                        return Err(SyntaxError::IncompleteFieldBlock)
                     }
 
-                    Err(ParseError::InvalidLiteral(Some(Token::ClosedBrace)))
-                    | Err(ParseError::NameIsInvalid(Some(Token::ClosedBrace))) => break,
+                    Err(SyntaxError::InvalidLiteral(Some(Token::ClosedBrace)))
+                    | Err(SyntaxError::NameIsInvalid(Some(Token::ClosedBrace))) => break,
 
                     Err(e) => return Err(e),
                 }
@@ -290,19 +324,19 @@ impl Parser {
         }
     }
 
-    fn parse_field(mut lex: &mut PeekableLexer) -> Result<Field, ParseError> {
+    fn parse_field(mut lex: &mut PeekableLexer) -> Result<Field, SyntaxError> {
         let name = Parser::parse_name(&mut lex)?;
         let value = Parser::parse_literal(&mut lex)?;
         Ok(Field { name, value })
     }
 
-    fn parse_literal(lex: &mut PeekableLexer) -> Result<Literal, ParseError> {
+    fn parse_literal(lex: &mut PeekableLexer) -> Result<Literal, SyntaxError> {
         match lex.next() {
             Some(Token::LiteralString(s)) => Ok(Literal::String(s)),
             Some(Token::Number(n)) => Ok(Literal::Number(n)),
             Some(Token::URI(uri)) => Ok(Literal::Name(Name::URI(URI::from_string(uri)))),
             Some(Token::Text(alias)) => Ok(Literal::Name(Name::Alias(alias))),
-            token => Err(ParseError::InvalidLiteral(token)),
+            token => Err(SyntaxError::InvalidLiteral(token)),
         }
     }
 }
