@@ -11,6 +11,14 @@ use std::path::PathBuf;
 pub struct CamlModuleName(String);
 
 impl CamlModuleName {
+    pub fn is_empty(&self) -> bool {
+        self.0 == ""
+    }
+
+    pub fn local_module() -> CamlModuleName {
+        CamlModuleName("".to_string())
+    }
+
     pub fn from_name(name: &lore_ast::Name) -> CamlModuleName {
         let mut parts = vec![];
         for part in name.to_string().replace("/", ":").split(":") {
@@ -77,16 +85,23 @@ impl CamlModule {
 ///
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct CamlFieldName(String);
+pub struct CamlField {
+    name: String,
+    doc: Option<String>,
+    type_: CamlType,
+}
 
-impl Display for CamlFieldName {
+impl Display for CamlField {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        write!(f, "{}", self.0)
+        if let Some(doc) = &self.doc {
+            write!(f, "(* {} *)", doc.trim())?;
+        }
+        write!(f, "{}: {}", self.name, self.type_)
     }
 }
 
-impl CamlFieldName {
-    pub fn from_name(name: &lore_ast::Name) -> CamlFieldName {
+impl CamlField {
+    pub fn from_name(name: &lore_ast::Name, type_: CamlType) -> CamlField {
         let mut parts = vec![];
         for part in name.to_string().replace("/", ":").split(":") {
             parts.push(part.to_string())
@@ -95,13 +110,21 @@ impl CamlFieldName {
         if let Some(first) = name.get_mut(0..1) {
             first.make_ascii_lowercase();
         };
-        CamlFieldName(name)
+        CamlField {
+            name,
+            type_,
+            doc: None,
+        }
+    }
+
+    pub fn with_doc(self, doc: Option<String>) -> CamlField {
+        CamlField { doc, ..self }
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CamlRecord {
-    fields: Vec<(CamlFieldName, CamlType)>,
+    fields: Vec<CamlField>,
 }
 
 impl Display for CamlRecord {
@@ -109,9 +132,9 @@ impl Display for CamlRecord {
         let mut fields = self.fields.clone();
         fields.sort_by(|a, b| a.cmp(b));
 
-        write!(f, "{{ {}: {}", fields[0].0, fields[0].1)?;
-        for (name, typ) in fields[1..].iter() {
-            write!(f, "\n; {}: {}", name, typ)?;
+        write!(f, "{{ {}", fields[0])?;
+        for field in fields[1..].iter() {
+            write!(f, "\n; {}", field)?;
         }
         write!(f, " }}")
     }
@@ -173,7 +196,7 @@ impl CamlType {
         CamlType::Abstract(name)
     }
 
-    pub fn record(name: String, fields: Vec<(CamlFieldName, CamlType)>) -> CamlType {
+    pub fn record(name: String, fields: Vec<CamlField>) -> CamlType {
         CamlType::Record {
             name,
             record: CamlRecord { fields },
@@ -184,6 +207,12 @@ impl CamlType {
 impl Display for CamlType {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         match self {
+            CamlType::Reference {
+                type_name,
+                module_path,
+            } if module_path.is_empty() => {
+                write!(f, "{}", type_name)
+            }
             CamlType::Reference {
                 module_path,
                 type_name,
@@ -205,20 +234,115 @@ impl Display for CamlType {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///
+/// An OCaml Function
+///
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CamlFun {
+    args: Vec<CamlType>,
+    return_: CamlType,
+}
+
+impl CamlFun {
+    pub fn new(args: Vec<CamlType>, return_: CamlType) -> CamlFun {
+        CamlFun { args, return_ }
+    }
+}
+
+impl Display for CamlFun {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        for arg in &self.args {
+            write!(f, "{} -> ", arg)?;
+        }
+        write!(f, "{}", self.return_)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///
+/// An OCaml Binding
+///
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CamlBinding {
+    name: String,
+    val: CamlFun,
+}
+
+impl CamlBinding {
+    pub fn bind(name: lore_ast::Name, val: CamlFun) -> CamlBinding {
+        let mut parts = vec![];
+        for part in name.to_string().replace("/", ":").split(":") {
+            parts.push(part.to_string())
+        }
+        let mut name = parts.join("_");
+        if let Some(first) = name.get_mut(0..1) {
+            first.make_ascii_lowercase();
+        };
+        CamlBinding { name, val }
+    }
+}
+
+impl Display for CamlBinding {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(f, "val {} : {}", self.name, self.val)
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///
 /// An OCaml Value
 ///
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum CamlValue {
+pub enum CamlValueDesc {
     Module(CamlModule),
     Type(CamlType),
+    Binding(CamlBinding),
+}
+
+impl Display for CamlValueDesc {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        match self {
+            CamlValueDesc::Module(m) => write!(f, "{}", m),
+            CamlValueDesc::Type(t) => write!(f, "{}", t),
+            CamlValueDesc::Binding(b) => write!(f, "{}", b),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CamlValue {
+    value: CamlValueDesc,
+    doc: Option<String>,
+}
+
+impl CamlValue {
+    pub fn binding(b: CamlBinding) -> CamlValue {
+        CamlValue {
+            value: CamlValueDesc::Binding(b),
+            doc: None,
+        }
+    }
+
+    pub fn new_type(t: CamlType) -> CamlValue {
+        CamlValue {
+            value: CamlValueDesc::Type(t),
+            doc: None,
+        }
+    }
+
+    pub fn with_doc(self, doc: Option<String>) -> CamlValue {
+        CamlValue { doc, ..self }
+    }
 }
 
 impl Display for CamlValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        match self {
-            CamlValue::Module(m) => write!(f, "{}", m),
-            CamlValue::Type(t) => write!(f, "{}", t),
+        if let Some(doc) = &self.doc {
+            writeln!(f, "(*")?;
+            writeln!(f, "  {}", doc.trim())?;
+            writeln!(f, "*)")?;
         }
+        write!(f, "{}", self.value)
     }
 }

@@ -19,10 +19,10 @@ impl OCamlEmitter {
             let subject = attribute.name.to_uri();
             if let Some(rels) = store.relations_by_subject.get(&subject) {
                 for rel in rels {
-                    let field_name = CamlFieldName::from_name(&rel.predicate);
                     let module_name = CamlModuleName::from_name(&rel.object);
                     let type_ref = CamlType::reference(module_name, "t".to_string());
-                    fields.push((field_name, type_ref));
+                    let field = CamlField::from_name(&rel.predicate, type_ref);
+                    fields.push(field);
                 }
             };
 
@@ -34,19 +34,49 @@ impl OCamlEmitter {
             };
 
             let module = CamlModule::new(CamlModuleName::from_name(&attribute.name))
-                .with_structure(vec![CamlValue::Type(main_type)]);
+                .with_structure(vec![CamlValue::new_type(main_type)]);
             sources.push(module.into())
         }
 
         for kind in store.kinds() {
+            let mut doc_string = None;
             let mut fields = vec![];
+
+            let mut accessors = vec![];
+
+            for field in &kind.fields {
+                if field.name.uri == lore_ast::URI::from_string("lore:v1/doc/en".to_string()) {
+                    doc_string = Some(field.value.to_string())
+                };
+            }
+
             let subject = kind.name.to_uri();
             if let Some(rels) = store.relations_by_subject.get(&subject) {
                 for rel in rels {
-                    let field_name = CamlFieldName::from_name(&rel.predicate);
                     let module_name = CamlModuleName::from_name(&rel.object);
                     let type_ref = CamlType::reference(module_name, "t".to_string());
-                    fields.push((field_name, type_ref));
+
+                    let doc = rel
+                        .fields
+                        .iter()
+                        .find(|f| {
+                            f.name.uri == lore_ast::URI::from_string("lore:v1/doc/en".to_string())
+                        })
+                        .map(|f| f.value.to_string());
+
+                    let accessor = CamlValue::binding(CamlBinding::bind(
+                        rel.predicate.clone(),
+                        CamlFun::new(
+                            vec![CamlType::reference(
+                                CamlModuleName::local_module(),
+                                "t".to_string(),
+                            )],
+                            type_ref.clone(),
+                        ),
+                    ))
+                    .with_doc(doc);
+
+                    accessors.push(accessor);
                 }
             };
 
@@ -57,8 +87,13 @@ impl OCamlEmitter {
                 CamlType::record(type_name, fields)
             };
 
-            let module = CamlModule::new(CamlModuleName::from_name(&kind.name))
-                .with_structure(vec![CamlValue::Type(main_type)]);
+            let module = CamlModule::new(CamlModuleName::from_name(&kind.name)).with_structure(
+                vec![
+                    vec![CamlValue::new_type(main_type).with_doc(doc_string)],
+                    accessors,
+                ]
+                .concat(),
+            );
             sources.push(module.into())
         }
 

@@ -47,6 +47,16 @@ pub enum Literal {
     Name(Name),
 }
 
+impl ToString for Literal {
+    fn to_string(&self) -> String {
+        match self {
+            Literal::Number(n) => n.to_string(),
+            Literal::String(s) => s.to_string(),
+            Literal::Name(n) => n.to_string(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Field {
     pub name: Name,
