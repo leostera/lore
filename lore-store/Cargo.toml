@@ -11,6 +11,7 @@ lore-ast = { path = "../lore-ast" }
 lore-parser = { path = "../lore-parser" }
 thiserror = "^1"
 miette = "^3"
+oxigraph = "0.2.5"
 
 [dev-dependencies]
 pretty_assertions = "0.7"

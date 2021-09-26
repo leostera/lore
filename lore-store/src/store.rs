@@ -12,12 +12,17 @@ pub enum StoreError {
     #[error(transparent)]
     ValidationError(#[from] lore_parser::ValidationError),
 
+    #[error(transparent)]
+    QueryError(#[from] oxigraph::sparql::EvaluationError),
+
     #[error("Runtime error")]
     Runtime(String),
 }
 
 #[derive(Clone, Default)]
 pub struct Store {
+    pub graph: oxigraph::MemoryStore,
+
     pub relations_by_subject: HashMap<URI, Vec<Relation>>,
 
     pub attributes: HashMap<URI, Attribute>,
@@ -27,32 +32,32 @@ pub struct Store {
 
 impl std::fmt::Debug for Store {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(f, "Store {{\n")?;
+        writeln!(f, "Store {{")?;
 
-        write!(f, "  kinds: {{\n")?;
+        writeln!(f, "  kinds: {{")?;
         let mut kinds: Vec<Kind> = self.kinds.values().cloned().collect();
-        kinds.sort_by(|a, b| a.cmp(b));
+        kinds.sort();
         for k in kinds {
-            write!(f, "  {:#?}\n", k)?;
+            writeln!(f, "  {:#?}", k)?;
         }
-        write!(f, "  }}\n")?;
+        writeln!(f, "  }}")?;
 
-        write!(f, "  attributes: {{\n")?;
+        writeln!(f, "  attributes: {{")?;
         let mut attributes: Vec<Attribute> = self.attributes.values().cloned().collect();
-        attributes.sort_by(|a, b| a.cmp(b));
+        attributes.sort();
         for a in attributes {
-            write!(f, "    {:#?}\n", a)?;
+            writeln!(f, "    {:#?}", a)?;
         }
-        write!(f, "  }}\n")?;
+        writeln!(f, "  }}")?;
 
-        write!(f, "  relations: {{\n")?;
+        writeln!(f, "  relations: {{")?;
         let mut relations: Vec<(URI, Vec<Relation>)> =
             self.relations_by_subject.clone().into_iter().collect();
-        relations.sort_by(|a, b| a.cmp(b));
+        relations.sort();
         for rel in relations {
-            write!(f, "    {:#?}\n", rel)?;
+            writeln!(f, "    {:#?}", rel)?;
         }
-        write!(f, "  }}\n")?;
+        writeln!(f, "  }}")?;
 
         write!(f, "}}")
     }
@@ -85,10 +90,45 @@ impl Store {
         for attribute in ast.attributes {
             self.attributes
                 .insert(attribute.name.to_uri(), attribute.clone());
+
+            use oxigraph::model::*;
+            let quad = Quad::new(
+                NamedNode::new(attribute.name.to_string()).unwrap(),
+                NamedNode::new("http://www.w3.org/1999/02/22-rdf-syntax-ns#type").unwrap(),
+                NamedNode::new("http://www.w3.org/2002/07/owl#ObjectProperty").unwrap(),
+                None,
+            );
+            self.graph.insert(quad);
+
+            let quad = Quad::new(
+                NamedNode::new(attribute.name.to_string()).unwrap(),
+                NamedNode::new("https://lore-lang.org/v1/type").unwrap(),
+                NamedNode::new("https://lore-lang.org/v1/Attribute").unwrap(),
+                None,
+            );
+            self.graph.insert(quad);
         }
 
         for kind in ast.kinds {
             self.kinds.insert(kind.name.to_uri(), kind.clone());
+
+            use oxigraph::model::*;
+
+            let quad = Quad::new(
+                NamedNode::new(kind.name.to_string()).unwrap(),
+                NamedNode::new("http://www.w3.org/1999/02/22-rdf-syntax-ns#type").unwrap(),
+                NamedNode::new("http://www.w3.org/2002/07/owl#Class").unwrap(),
+                None,
+            );
+            self.graph.insert(quad);
+
+            let quad = Quad::new(
+                NamedNode::new(kind.name.to_string()).unwrap(),
+                NamedNode::new("https://lore-lang.org/v1/type").unwrap(),
+                NamedNode::new("https://lore-lang.org/v1/Kind").unwrap(),
+                None,
+            );
+            self.graph.insert(quad);
         }
 
         for rel in ast.relations {
@@ -101,9 +141,70 @@ impl Store {
                     q.push(rel.clone());
                 }
             }
+
+            if let Some(rels) = self.relations_by_subject.get_mut(&rel.subject.to_uri()) {
+                for rel in rels {
+                    use oxigraph::model::*;
+                    let quad = Quad::new(
+                        NamedNode::new(rel.predicate.to_string()).unwrap(),
+                        NamedNode::new("http://www.w3.org/2000/01/rdf-schema#domain").unwrap(),
+                        NamedNode::new(rel.subject.to_string()).unwrap(),
+                        None,
+                    );
+                    self.graph.insert(quad);
+
+                    let quad = Quad::new(
+                        NamedNode::new(rel.predicate.to_string()).unwrap(),
+                        NamedNode::new("http://www.w3.org/2000/01/rdf-schema#range").unwrap(),
+                        NamedNode::new(rel.object.to_string()).unwrap(),
+                        None,
+                    );
+                    self.graph.insert(quad);
+                }
+            }
         }
 
         Ok(self)
+    }
+
+    pub fn query(&self, query: &str) -> Result<Vec<Vec<String>>, StoreError> {
+        let query = format!(
+            r#"
+
+PREFIX lore: <https://lore-lang.org/v1/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+{}
+        "#,
+            query
+        );
+
+        use oxigraph::sparql::QueryResults;
+        if let QueryResults::Solutions(solutions) =
+            self.graph.query(&query).map_err(StoreError::QueryError)?
+        {
+            let mut results = vec![];
+            for solution in solutions {
+                match solution {
+                    Err(e) => {
+                        return Err(StoreError::QueryError(e));
+                    }
+                    Ok(s) => {
+                        let mut vars = vec![];
+                        for (var, term) in s.iter() {
+                            vars.push(format!("{}: {}", var, term));
+                        }
+                        results.push(vars);
+                    }
+                }
+            }
+            Ok(results)
+        } else {
+            Ok(vec![])
+        }
     }
 }
 
