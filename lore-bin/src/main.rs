@@ -56,6 +56,14 @@ enum Command {
         dump_ast: bool,
     },
 
+    Query {
+        #[structopt(name = "INPUT", parse(from_os_str))]
+        inputs: Vec<PathBuf>,
+
+        #[structopt(short = "q", long = "query", name = "QUERY")]
+        query: String,
+    },
+
     Codegen {
         #[structopt(
             short = "",
@@ -99,6 +107,24 @@ impl Command {
                 Ok(())
             }
 
+            Command::Query { inputs, query } => {
+                let mut store = lore_store::Store::new();
+                for input in inputs {
+                    let mut parser = lore_parser::Parser::for_file(input.clone())?;
+                    let validator = lore_parser::Validator::new();
+                    let ast = validator.validate(parser.parse()?)?;
+                    store.add_tree(ast)?;
+                }
+
+                println!("QUERY: {}", &query);
+
+                let results = store.query(&query)?;
+
+                println!("RESULTS:\n{:#?}", results);
+
+                Ok(())
+            }
+
             Command::Codegen {
                 inputs,
                 target,
@@ -131,5 +157,8 @@ impl Command {
 }
 
 fn main() -> Result<()> {
+    miette::set_hook(Box::new(|_| {
+        Box::new(miette::MietteHandlerOpts::new().context_lines(3).build())
+    }))?;
     Args::from_args().cmd.run()
 }
