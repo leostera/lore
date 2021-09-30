@@ -1,3 +1,4 @@
+use crate::quads::ToQuads;
 use lore_ast::*;
 use miette::Diagnostic;
 use std::collections::HashMap;
@@ -91,44 +92,17 @@ impl Store {
             self.attributes
                 .insert(attribute.name.to_uri(), attribute.clone());
 
-            use oxigraph::model::*;
-            let quad = Quad::new(
-                NamedNode::new(attribute.name.to_string()).unwrap(),
-                NamedNode::new("http://www.w3.org/1999/02/22-rdf-syntax-ns#type").unwrap(),
-                NamedNode::new("http://www.w3.org/2002/07/owl#ObjectProperty").unwrap(),
-                None,
-            );
-            self.graph.insert(quad);
-
-            let quad = Quad::new(
-                NamedNode::new(attribute.name.to_string()).unwrap(),
-                NamedNode::new("https://lore-lang.org/v1/type").unwrap(),
-                NamedNode::new("https://lore-lang.org/v1/Attribute").unwrap(),
-                None,
-            );
-            self.graph.insert(quad);
+            for q in attribute.to_quads() {
+                self.graph.insert(q);
+            }
         }
 
         for kind in ast.kinds {
             self.kinds.insert(kind.name.to_uri(), kind.clone());
 
-            use oxigraph::model::*;
-
-            let quad = Quad::new(
-                NamedNode::new(kind.name.to_string()).unwrap(),
-                NamedNode::new("http://www.w3.org/1999/02/22-rdf-syntax-ns#type").unwrap(),
-                NamedNode::new("http://www.w3.org/2002/07/owl#Class").unwrap(),
-                None,
-            );
-            self.graph.insert(quad);
-
-            let quad = Quad::new(
-                NamedNode::new(kind.name.to_string()).unwrap(),
-                NamedNode::new("https://lore-lang.org/v1/type").unwrap(),
-                NamedNode::new("https://lore-lang.org/v1/Kind").unwrap(),
-                None,
-            );
-            self.graph.insert(quad);
+            for q in kind.to_quads() {
+                self.graph.insert(q);
+            }
         }
 
         for rel in ast.relations {
@@ -144,22 +118,9 @@ impl Store {
 
             if let Some(rels) = self.relations_by_subject.get_mut(&rel.subject.to_uri()) {
                 for rel in rels {
-                    use oxigraph::model::*;
-                    let quad = Quad::new(
-                        NamedNode::new(rel.predicate.to_string()).unwrap(),
-                        NamedNode::new("http://www.w3.org/2000/01/rdf-schema#domain").unwrap(),
-                        NamedNode::new(rel.subject.to_string()).unwrap(),
-                        None,
-                    );
-                    self.graph.insert(quad);
-
-                    let quad = Quad::new(
-                        NamedNode::new(rel.predicate.to_string()).unwrap(),
-                        NamedNode::new("http://www.w3.org/2000/01/rdf-schema#range").unwrap(),
-                        NamedNode::new(rel.object.to_string()).unwrap(),
-                        None,
-                    );
-                    self.graph.insert(quad);
+                    for q in rel.to_quads() {
+                        self.graph.insert(q);
+                    }
                 }
             }
         }

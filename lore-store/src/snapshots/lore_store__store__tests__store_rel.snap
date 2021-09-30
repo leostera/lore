@@ -45,6 +45,7 @@ Store {
                     "spotify:attr:Name",
                 ),
             },
+            fields: [],
         },
     ],
 )

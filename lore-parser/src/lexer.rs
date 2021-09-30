@@ -228,7 +228,7 @@ mod tests {
                     @label/en "Name"
                     @label/es "Nombre"
                     @comment/en ""
-                    @see-also    @other/entity   
+                    @see-also    @other/entity
 
                     @symmetry       :symmetric
                     @reflexivity    :reflexive

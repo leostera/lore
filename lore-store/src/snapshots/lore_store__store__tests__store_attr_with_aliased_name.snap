@@ -23,6 +23,7 @@ Store {
             "spotify:field:Name",
         ),
     },
+    fields: [],
 }
   }
   relations: {

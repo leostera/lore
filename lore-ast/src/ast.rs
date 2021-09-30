@@ -83,20 +83,6 @@ pub struct Relation {
     pub fields: Vec<Field>,
 }
 
-/*
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub enum StructureItem {
-    Relation(Relation),
-    Kind(Kind),
-    Attribute(Attribute),
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Structure {
-    pub items: Vec<StructureItem>,
-}
-*/
-
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Structure {
     pub kinds: Vec<Kind>,

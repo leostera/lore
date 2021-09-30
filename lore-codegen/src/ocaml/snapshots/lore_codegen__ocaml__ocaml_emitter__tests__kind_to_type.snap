@@ -29,7 +29,7 @@ SourceSet {
         },
         Source {
             name: "dota_ontology_2022_hero.mli",
-            contents: "type t = { lore_rel_v1_hasOne: Dota_ontology_2022_name.t } \n\n",
+            contents: "type t\nval lore_rel_v1_hasOne : t -> Dota_ontology_2022_name.t\n",
         },
     ],
 }

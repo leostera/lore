@@ -39,6 +39,7 @@ Store {
             "dota:ontology:2022/Name",
         ),
     },
+    fields: [],
 }
   }
   relations: {
@@ -66,6 +67,7 @@ Store {
                     "dota:ontology:2022/Name",
                 ),
             },
+            fields: [],
         },
     ],
 )
